@@ -5876,21 +5876,41 @@
     }
 
     // Tabs
-    document.querySelectorAll('.tab-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        document.querySelectorAll('.tab-btn').forEach((b) => b.setAttribute('aria-selected', 'false'));
-        btn.setAttribute('aria-selected', 'true');
+    let preserveStatsNavigationOnNextActivation = false;
 
-        document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
-        document.getElementById(`${tab}-content`).classList.add('active');
+    function activateDashboardTab(tab) {
+      const button = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+      const content = document.getElementById(`${tab}-content`);
+      if (!button || !content) return;
 
-        if (tab === 'stats') loadStats();
-        if (tab === 'overview' && lastUsageResponse) renderOverviewTab(lastUsageResponse);
-        if (tab === 'sessions') ensureSessionsLoaded();
-        if (tab === 'quota' && !quotaLoaded) loadQuota();
-        if (tab === 'pricing' && !pricingDbLoaded) loadPricingDb();
-      });
+      document.querySelectorAll('.tab-btn').forEach((item) => item.setAttribute('aria-selected', 'false'));
+      button.setAttribute('aria-selected', 'true');
+      document.querySelectorAll('.tab-content').forEach((item) => item.classList.remove('active'));
+      content.classList.add('active');
+
+      if (tab !== 'overview') {
+        const tooltip = document.getElementById('overviewProfileTooltip');
+        if (tooltip) tooltip.hidden = true;
+      }
+      if (tab === 'stats') {
+        const preserveNavigation = preserveStatsNavigationOnNextActivation;
+        preserveStatsNavigationOnNextActivation = false;
+        loadStats({ preserveNavigation });
+      }
+      if (tab === 'overview' && lastUsageResponse) renderOverviewTab(lastUsageResponse);
+      if (tab === 'sessions') ensureSessionsLoaded();
+      if (tab === 'quota' && !quotaLoaded) loadQuota();
+      if (tab === 'pricing' && !pricingDbLoaded) loadPricingDb();
+    }
+
+    function openOverviewProfile() {
+      preserveStatsNavigationOnNextActivation = true;
+      activateDashboardTab('stats');
+      setView('profile');
+    }
+
+    document.querySelectorAll('.tab-btn').forEach((button) => {
+      button.addEventListener('click', () => activateDashboardTab(button.dataset.tab));
     });
 
     document.getElementById('quotaRangeSelect')?.addEventListener('change', (e) => {
@@ -6381,12 +6401,15 @@
     }
 
     function ensureOverviewProfileInitialScroll() {
-      if (overviewProfileDidInitialScroll) return;
       const scroller = document.getElementById('overviewProfileScroller');
-      if (scroller && scroller.scrollWidth > scroller.clientWidth) {
-        scroller.scrollLeft = scroller.scrollWidth;
-        overviewProfileDidInitialScroll = true;
+      if (!scroller) return;
+      if (scroller.scrollWidth <= scroller.clientWidth) {
+        overviewProfileDidInitialScroll = false;
+        return;
       }
+      if (overviewProfileDidInitialScroll) return;
+      scroller.scrollLeft = scroller.scrollWidth;
+      overviewProfileDidInitialScroll = true;
     }
 
     function renderOverviewProfilePreview(contributions = statsCache.default) {
@@ -7683,7 +7706,9 @@
     document.getElementById('profileModeDaily').addEventListener('click', () => setProfileActivityMode('daily'));
     document.getElementById('profileModeWeekly').addEventListener('click', () => setProfileActivityMode('weekly'));
     document.getElementById('profileModeCumulative').addEventListener('click', () => setProfileActivityMode('cumulative'));
+    document.getElementById('overviewProfileOpen')?.addEventListener('click', openOverviewProfile);
     window.addEventListener('resize', ensureProfileActivityInitialScroll, { passive: true });
+    window.addEventListener('resize', ensureOverviewProfileInitialScroll, { passive: true });
     document.getElementById('statsRetryBtn')?.addEventListener('click', () => loadStats());
     document.getElementById('metricTokensBtn').addEventListener('click', () => setCalendarMetric('tokens'));
     document.getElementById('metricEnergyBtn').addEventListener('click', () => setCalendarMetric('energy'));

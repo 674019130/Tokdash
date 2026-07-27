@@ -536,6 +536,42 @@ def test_overview_profile_summary_markup_and_style_contract():
     assert ".overview-profile-cell{transform:none!important;}" in compact
 
 
+def test_overview_profile_navigation_preserves_profile_state_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    activator = _extract_js_function(source, "function activateDashboardTab(tab) {")
+    opener = _extract_js_function(source, "function openOverviewProfile() {")
+
+    assert "content.classList.add('active');" in activator
+    assert "const preserveNavigation = preserveStatsNavigationOnNextActivation;" in activator
+    assert "preserveStatsNavigationOnNextActivation = false;" in activator
+    assert "loadStats({ preserveNavigation });" in activator
+    assert "preserveStatsNavigationOnNextActivation = true;" in opener
+    assert "activateDashboardTab('stats');" in opener
+    assert "setView('profile');" in opener
+    assert "profileActivityMode =" not in opener
+    assert "monthCursor =" not in opener
+    assert "yearCursor =" not in opener
+    assert "addEventListener('click', openOverviewProfile)" in source
+
+
+def test_overview_profile_resize_rearms_initial_scroll_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    helper = _extract_js_function(
+        source, "function ensureOverviewProfileInitialScroll() {"
+    )
+
+    no_overflow = "if (scroller.scrollWidth <= scroller.clientWidth) {"
+    assert no_overflow in helper
+    assert "overviewProfileDidInitialScroll = false;" in helper
+    assert helper.index(no_overflow) < helper.index(
+        "if (overviewProfileDidInitialScroll) return;"
+    )
+    assert (
+        "window.addEventListener('resize', ensureOverviewProfileInitialScroll, "
+        "{ passive: true });"
+    ) in source
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_main_inline_script_parses_with_node(tmp_path: Path):
     source = INDEX_HTML.read_text(encoding="utf-8")
