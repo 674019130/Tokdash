@@ -3550,6 +3550,7 @@
         }
       });
       scheduleIdle(() => updateCombinedModelsTable(lastCombinedModels));
+      renderOverviewProfilePreview();
     }
 
     // Window key for the data currently displayed, so deferred session loads
@@ -6128,6 +6129,16 @@
       return { cells, series };
     }
 
+    function buildOverviewProfilePreview(contributions, today = new Date()) {
+      const days = getProfileActivityWindow(contributions || [], today);
+      const weeks = groupProfileActivityWeeks(days);
+      return {
+        days,
+        summary: summarizeProfileActivity(days),
+        cells: buildProfileActivityCells('daily', days, weeks).cells,
+      };
+    }
+
     let profileActivityMode = 'daily';
     let profileActivityDidInitialScroll = false;
 
@@ -6226,8 +6237,13 @@
       tooltip.replaceChildren(header, body);
     }
 
+    function resolveProfileActivityTooltip(target) {
+      const tooltipId = target?.dataset.profileTooltipId || 'profileActivityTooltip';
+      return document.getElementById(tooltipId);
+    }
+
     function showProfileActivityTooltip(target, model) {
-      const tooltip = document.getElementById('profileActivityTooltip');
+      const tooltip = resolveProfileActivityTooltip(target);
       if (!tooltip || !target || !model?.title) return;
       renderProfileActivityTooltipContent(tooltip, model);
       tooltip.hidden = false;
@@ -6245,7 +6261,7 @@
     }
 
     function hideProfileActivityTooltip(target) {
-      const tooltip = document.getElementById('profileActivityTooltip');
+      const tooltip = resolveProfileActivityTooltip(target);
       if (tooltip) tooltip.hidden = true;
       if (target) target.removeAttribute('aria-describedby');
     }
@@ -6355,6 +6371,62 @@
       requestAnimationFrame(ensureProfileActivityInitialScroll);
     }
 
+    let overviewProfileDidInitialScroll = false;
+
+    function setOverviewProfileState(state) {
+      const shell = document.getElementById('overviewProfileSummary');
+      if (!shell) return;
+      shell.dataset.state = state;
+      shell.setAttribute('aria-busy', String(state === 'loading'));
+    }
+
+    function ensureOverviewProfileInitialScroll() {
+      if (overviewProfileDidInitialScroll) return;
+      const scroller = document.getElementById('overviewProfileScroller');
+      if (scroller && scroller.scrollWidth > scroller.clientWidth) {
+        scroller.scrollLeft = scroller.scrollWidth;
+        overviewProfileDidInitialScroll = true;
+      }
+    }
+
+    function renderOverviewProfilePreview(contributions = statsCache.default) {
+      const grid = document.getElementById('overviewProfileGrid');
+      if (!grid) return;
+      if (!Array.isArray(contributions)) {
+        const shell = document.getElementById('overviewProfileSummary');
+        if (shell?.dataset.state !== 'error') setOverviewProfileState('loading');
+        return;
+      }
+
+      const { summary, cells } = buildOverviewProfilePreview(contributions, new Date());
+      document.getElementById('overviewProfileActiveDays').textContent = formatNumber(summary.activeDays || 0);
+      document.getElementById('overviewProfileCurrentStreak').textContent = pluralDays(summary.currentStreak || 0);
+      document.getElementById('overviewProfileLongestStreak').textContent = pluralDays(summary.longestStreak || 0);
+      grid.style.setProperty('--profile-activity-empty', getProfileActivityColor(0));
+      grid.style.setProperty('--profile-activity-strong', getProfileActivityColor(4));
+      grid.replaceChildren();
+
+      cells.forEach((definition) => {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'profile-activity-cell overview-profile-cell';
+        cell.setAttribute('role', 'gridcell');
+        cell.style.background = getProfileActivityColor(definition.level);
+        if (definition.day.isFuture) {
+          cell.disabled = true;
+          cell.setAttribute('aria-hidden', 'true');
+        } else {
+          cell.dataset.profileTooltipId = 'overviewProfileTooltip';
+          const tooltip = formatProfileDayTooltip(definition.day);
+          bindProfileActivityTooltip(cell, tooltip);
+        }
+        grid.appendChild(cell);
+      });
+
+      setOverviewProfileState('ready');
+      requestAnimationFrame(ensureOverviewProfileInitialScroll);
+    }
+
     function setProfileActivityMode(mode) {
       if (!['daily', 'weekly', 'cumulative'].includes(mode)) return;
       profileActivityMode = mode;
@@ -6404,9 +6476,16 @@
       statsWarmScheduled = true;
       setTimeout(() => {
         scheduleIdle(() => {
-          fetchJsonWithRetry(appPath('/api/stats'), {}, { attempts: 2, baseDelayMs: 600 }).catch(() => {
-            statsWarmScheduled = false;
-          });
+          fetchJsonWithRetry(appPath('/api/stats'), {}, { attempts: 2, baseDelayMs: 600 })
+            .then((data) => {
+              const filledContributions = fillMissingDays(data.contributions || []);
+              statsCache.default = filledContributions;
+              if (isOverviewActive()) renderOverviewProfilePreview(filledContributions);
+            })
+            .catch(() => {
+              statsWarmScheduled = false;
+              if (isOverviewActive()) setOverviewProfileState('error');
+            });
         }, 1500);
       }, 750);
     }

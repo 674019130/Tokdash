@@ -41,6 +41,7 @@ PROFILE_FUNCTIONS = [
     "function getProfileDailyLevel(value, peak) {",
     "function getProfileAggregateHeight(value, peak) {",
     "function buildProfileActivityCells(mode, days, weeks) {",
+    "function buildOverviewProfilePreview(contributions, today = new Date()) {",
 ]
 
 
@@ -249,6 +250,31 @@ def test_profile_default_window_is_52_weeks_and_empty_or_zero_data_is_safe(
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_overview_profile_preview_uses_daily_52_week_model(tmp_path: Path):
+    payload = {
+        "today": "2026-07-27",
+        "days": [_day("2026-07-26", 25), _day("2026-07-27", 75)],
+    }
+    result = _run_profile_js(
+        tmp_path,
+        "buildOverviewProfilePreview(payload.days, new Date(`${payload.today}T12:00:00`))",
+        payload,
+    )
+    assert len(result["days"]) == 364
+    assert len(result["cells"]) == 364
+    assert result["summary"]["recordedTokens"] == 100
+    assert result["summary"]["activeDays"] == 2
+    assert result["summary"]["currentStreak"] == 2
+    assert result["summary"]["longestStreak"] == 2
+    today_cell = next(
+        cell for cell in result["cells"] if cell["day"]["date"] == payload["today"]
+    )
+    assert today_cell["level"] == 4
+    assert result["cells"][-1]["day"]["isFuture"] is True
+    assert result["cells"][-1]["level"] == 0
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_profile_week_aggregates_breakdown_and_cost_across_year_boundary(
     tmp_path: Path,
 ):
@@ -435,6 +461,38 @@ def test_profile_visual_polish_contract():
     )
     assert "model.accessibleText" in binder
     assert "content.replaceAll" not in binder
+
+    resolver = _extract_js_function(
+        source, "function resolveProfileActivityTooltip(target) {"
+    )
+    assert "dataset.profileTooltipId" in resolver
+    assert "profileActivityTooltip" in resolver
+
+
+def test_overview_profile_renderer_reuses_stats_warm_response():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    warm = _extract_js_function(source, "function scheduleStatsWarm() {")
+    renderer = _extract_js_function(
+        source, "function renderOverviewProfilePreview(contributions = statsCache.default) {"
+    )
+    resolver = _extract_js_function(
+        source, "function resolveProfileActivityTooltip(target) {"
+    )
+
+    assert warm.count("fetchJsonWithRetry(appPath('/api/stats')") == 1
+    assert "fillMissingDays(data.contributions || [])" in warm
+    assert "statsCache.default = filledContributions;" in warm
+    assert "renderOverviewProfilePreview(filledContributions);" in warm
+    assert "setOverviewProfileState('error');" in warm
+    assert "fetch(" not in renderer
+    assert "buildOverviewProfilePreview(contributions" in renderer
+    assert "overviewProfileTooltip" in renderer
+    assert "bindProfileActivityTooltip(cell, tooltip);" in renderer
+    assert "shell?.dataset.state !== 'error'" in renderer
+    assert "target?.dataset.profileTooltipId || 'profileActivityTooltip'" in resolver
+    assert "renderOverviewProfilePreview();" in _extract_js_function(
+        source, "function renderOverviewTab(data) {"
+    )
 
 
 def test_overview_profile_summary_markup_and_style_contract():
