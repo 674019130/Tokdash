@@ -6122,40 +6122,68 @@
       return safeValue <= 0 || safePeak <= 0 ? 0 : Math.max(1, Math.ceil((safeValue / safePeak) * 7));
     }
 
+    function getProfileMilestoneTier(value) {
+      const safeValue = Math.max(0, safeProfileNumber(value));
+      const tiers = [
+        { level: 4, minTokens: 1_000_000_000, label: '1B+', tone: 'milestone-4' },
+        { level: 3, minTokens: 500_000_000, label: '500M+', tone: 'milestone-3' },
+        { level: 2, minTokens: 300_000_000, label: '300M+', tone: 'milestone-2' },
+        { level: 1, minTokens: 100_000_000, label: '100M+', tone: 'milestone-1' },
+      ];
+      return tiers.find((tier) => safeValue >= tier.minTokens) || null;
+    }
+
     function buildProfileActivityCells(mode, days, weeks) {
       if (mode === 'daily') {
         const peak = Math.max(0, ...(days || []).map(profileDayTokens));
         return {
           series: [],
-          cells: (days || []).map((day, index) => ({
-            index,
-            day,
-            level: getProfileDailyLevel(profileDayTokens(day), peak),
-            active: profileDayTokens(day) > 0,
-          })),
+          cells: (days || []).map((day, index) => {
+            const value = profileDayTokens(day);
+            return {
+              index,
+              day,
+              value,
+              level: getProfileDailyLevel(value, peak),
+              active: value > 0,
+              milestone: day.isFuture ? null : getProfileMilestoneTier(value),
+            };
+          }),
         };
       }
       const series = buildProfileActivitySeries(mode, weeks || []);
       const peak = Math.max(0, ...series.map((week) => safeProfileNumber(week?.totals?.tokens)));
       const cells = series.flatMap((week, weekIndex) => {
-        const height = getProfileAggregateHeight(week?.totals?.tokens, peak);
-        return Array.from({ length: 7 }, (_, row) => ({
-          weekIndex,
-          row,
-          active: 7 - row <= height,
-          value: safeProfileNumber(week?.totals?.tokens),
-        }));
+        const value = safeProfileNumber(week?.totals?.tokens);
+        const height = getProfileAggregateHeight(value, peak);
+        const milestone = getProfileMilestoneTier(value);
+        return Array.from({ length: 7 }, (_, row) => {
+          const active = 7 - row <= height;
+          const isCap = active && row === 7 - height;
+          return {
+            weekIndex,
+            row,
+            active,
+            isCap,
+            value,
+            milestone: isCap ? milestone : null,
+          };
+        });
       });
       return { cells, series };
     }
 
-    function buildOverviewProfilePreview(contributions, today = new Date()) {
+    function buildOverviewProfilePreview(contributions, today = new Date(), mode = 'daily') {
       const days = getProfileActivityWindow(contributions || [], today);
       const weeks = groupProfileActivityWeeks(days);
+      const activity = buildProfileActivityCells(mode, days, weeks);
       return {
+        mode,
         days,
+        weeks,
         summary: summarizeProfileActivity(days),
-        cells: buildProfileActivityCells('daily', days, weeks).cells,
+        cells: activity.cells,
+        series: activity.series,
       };
     }
 

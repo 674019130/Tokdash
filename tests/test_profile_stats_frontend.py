@@ -40,8 +40,9 @@ PROFILE_FUNCTIONS = [
     "function buildProfileActivitySeries(mode, weeks) {",
     "function getProfileDailyLevel(value, peak) {",
     "function getProfileAggregateHeight(value, peak) {",
+    "function getProfileMilestoneTier(value) {",
     "function buildProfileActivityCells(mode, days, weeks) {",
-    "function buildOverviewProfilePreview(contributions, today = new Date()) {",
+    "function buildOverviewProfilePreview(contributions, today = new Date(), mode = 'daily') {",
 ]
 
 
@@ -211,6 +212,76 @@ def test_profile_week_and_cumulative_cells_follow_seven_level_scale(tmp_path: Pa
     assert result["cumulative"]["series"][1]["startDate"] == "2025-12-29"
     assert result["cumulative"]["series"][1]["endDate"] == "2026-01-11"
     assert result["levels"] == [0, 1, 1, 2, 3, 4]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_profile_milestones_are_inclusive_and_enrich_each_mode(tmp_path: Path):
+    payload = {
+        "today": "2026-01-11",
+        "values": [
+            -1,
+            0,
+            99_999_999,
+            100_000_000,
+            299_999_999,
+            300_000_000,
+            499_999_999,
+            500_000_000,
+            999_999_999,
+            1_000_000_000,
+        ],
+        "days": [
+            _day("2025-12-29", 100_000_000),
+            _day("2026-01-05", 250_000_000),
+        ],
+    }
+    expression = """
+    (() => {
+      const today = new Date(`${payload.today}T12:00:00`);
+      const days = getProfileActivityWindow(payload.days, today, 2);
+      const weeks = groupProfileActivityWeeks(days);
+      const daily = buildProfileActivityCells('daily', days, weeks);
+      const weekly = buildProfileActivityCells('weekly', days, weeks);
+      const cumulative = buildProfileActivityCells('cumulative', days, weeks);
+      const compactCaps = (result) => result.cells
+        .filter((cell) => cell.isCap)
+        .map((cell) => ({
+          value: cell.value,
+          milestone: cell.milestone?.level || null,
+        }));
+      return {
+        tiers: payload.values.map((value) => getProfileMilestoneTier(value)?.level || null),
+        labels: payload.values.map((value) => getProfileMilestoneTier(value)?.label || null),
+        dailyMilestones: daily.cells
+          .filter((cell) => cell.milestone)
+          .map((cell) => ({date: cell.day.date, level: cell.milestone.level})),
+        weeklyCaps: compactCaps(weekly),
+        cumulativeCaps: compactCaps(cumulative),
+        weeklyNonCapMilestones: weekly.cells.filter(
+          (cell) => !cell.isCap && cell.milestone,
+        ).length,
+        previewMode: buildOverviewProfilePreview(payload.days, today, 'weekly').mode,
+      };
+    })()
+    """
+    result = _run_profile_js(tmp_path, expression, payload)
+
+    assert result["tiers"] == [None, None, None, 1, 1, 2, 2, 3, 3, 4]
+    assert result["labels"][3::2] == ["100M+", "300M+", "500M+", "1B+"]
+    assert result["dailyMilestones"] == [
+        {"date": "2025-12-29", "level": 1},
+        {"date": "2026-01-05", "level": 1},
+    ]
+    assert result["weeklyCaps"] == [
+        {"value": 100_000_000, "milestone": 1},
+        {"value": 250_000_000, "milestone": 1},
+    ]
+    assert result["cumulativeCaps"] == [
+        {"value": 100_000_000, "milestone": 1},
+        {"value": 350_000_000, "milestone": 2},
+    ]
+    assert result["weeklyNonCapMilestones"] == 0
+    assert result["previewMode"] == "weekly"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
