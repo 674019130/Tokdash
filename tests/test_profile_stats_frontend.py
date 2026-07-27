@@ -229,3 +229,33 @@ def test_profile_week_aggregates_breakdown_and_cost_across_year_boundary(
         "cacheWrite": 4,
         "reasoning": 6,
     }
+
+
+def test_profile_view_html_and_localization_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    required_ids = [
+        "statsViewTitle",
+        "viewProfile",
+        "statsMetricControls",
+        "calendarProfileView",
+        "profileStatRecordedTokens",
+        "profileStatPeakDay",
+        "profileStatActiveDays",
+        "profileStatCurrentStreak",
+        "profileStatLongestStreak",
+        "profileActivityGrid",
+        "profileActivityWeekHits",
+        "profileActivityMonths",
+        "profileActivityScroller",
+        "profileActivityTooltip",
+        "profileModeDaily",
+        "profileModeWeekly",
+        "profileModeCumulative",
+    ]
+    for element_id in required_ids:
+        assert f'id="{element_id}"' in source
+    assert source.count("profileView: '") == 2
+    assert source.count("recordedTokens: '") == 2
+    assert source.count("tokenActivity: '") == 2
+    assert ".profile-activity-cell" in source
+    assert "border-radius:2px" in source.replace(" ", "")

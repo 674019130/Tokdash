@@ -444,6 +444,32 @@
     .heatmap-year-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,var(--hy-cell));grid-auto-columns:var(--hy-cell);gap:var(--hy-gap);padding-top:4px;}
     .heatmap-year-cell{width:var(--hy-cell);height:var(--hy-cell);border-radius:3px;border:1px solid rgba(226,232,240,0.6);cursor:pointer;}
 
+    .profile-activity-shell{max-width:732px;margin:0 auto;}
+    .profile-activity-summary-scroll{overflow-x:auto;padding-bottom:2px;}
+    .profile-activity-summary{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));min-width:600px;border:1px solid var(--color-border);border-radius:16px;overflow:hidden;background:color-mix(in srgb,var(--color-surface-glass) 82%,transparent);}
+    .profile-activity-stat{position:relative;padding:12px 8px;text-align:center;}
+    .profile-activity-stat+.profile-activity-stat::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--color-border);}
+    .profile-activity-stat dd{margin:0;color:var(--color-text);font-weight:800;font-size:15px;}
+    .profile-activity-stat dt{margin-top:3px;color:var(--color-muted);font-size:12px;white-space:nowrap;}
+    .profile-activity-head{display:flex;align-items:center;gap:16px;margin:32px 0 12px;}
+    .profile-activity-head h3{margin-right:auto;font-size:16px;font-weight:800;}
+    .profile-activity-mode{border:0;padding:0;background:transparent;color:var(--color-muted);font:inherit;cursor:pointer;}
+    .profile-activity-mode[aria-pressed="true"]{color:var(--color-text);}
+    .profile-activity-scroll{overflow-x:auto;padding:8px 0 12px;}
+    .profile-activity-grid-wrap{position:relative;min-width:572px;}
+    .profile-activity-grid{display:grid;grid-auto-flow:column;grid-template-columns:repeat(52,minmax(8px,1fr));grid-template-rows:repeat(7,minmax(8px,1fr));gap:3px;width:100%;}
+    .profile-activity-cell{width:100%;aspect-ratio:1;border:0;border-radius:2px;background:var(--profile-activity-empty,var(--color-border));padding:0;position:relative;}
+    button.profile-activity-cell{cursor:pointer;}
+    .profile-activity-cell.is-aggregate{background:var(--profile-activity-strong,var(--color-primary));}
+    .profile-activity-cell.is-column-hover.is-aggregate{filter:brightness(1.12);box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-activity-strong,var(--color-primary)) 55%,transparent);}
+    .profile-activity-cell.is-column-hover:not(.is-aggregate){background:color-mix(in srgb,var(--color-primary) 14%,var(--color-border));}
+    .profile-activity-week-hits{position:absolute;inset:0;display:grid;grid-template-columns:repeat(52,minmax(8px,1fr));gap:3px;pointer-events:none;}
+    .profile-activity-week-hit{position:relative;min-width:8px;border:0;background:transparent;padding:0;pointer-events:auto;cursor:pointer;}
+    .profile-activity-tooltip{position:fixed;z-index:120;max-width:280px;padding:7px 9px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-glass);color:var(--color-text);box-shadow:var(--shadow-md);white-space:pre-line;text-align:left;font-size:11px;line-height:1.35;pointer-events:none;}
+    .profile-activity-tooltip[hidden]{display:none;}
+    .profile-activity-months{display:flex;justify-content:space-between;min-width:572px;margin-top:8px;color:var(--color-muted);font-size:12px;}
+    @media(max-width:640px){.profile-activity-head{gap:10px;font-size:13px;}.profile-activity-shell{max-width:100%;}}
+
     .pricing-editor {
       width: 100%;
       min-height: 62vh;
@@ -1410,7 +1436,7 @@
 
     <!-- Stats Tab -->
     <div id="stats-content" class="tab-content">
-      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <section id="statsSummaryCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="surface p-4">
           <div class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-label);" data-i18n="topModelCost">Top Model (Cost)</div>
           <div id="statFavoriteModel" class="mt-2 font-extrabold mono">Loading…</div>
@@ -1445,7 +1471,7 @@
         </div>
       </section>
 
-      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <section id="statsInsightCards" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <div class="surface p-4">
           <div class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-label);" data-i18n="peakDay">Peak Day</div>
           <div id="statPeakDay" class="mt-2 font-extrabold mono">—</div>
@@ -1470,14 +1496,15 @@
 
       <section class="surface p-5">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h2 class="text-base font-extrabold mono" data-i18n="dailyActivity">Daily Activity</h2>
+          <h2 id="statsViewTitle" class="text-base font-extrabold mono" data-i18n="dailyActivity">Daily Activity</h2>
           <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
             <div class="flex gap-2">
               <button id="viewMonth" class="btn btn-primary" type="button" data-i18n="month">Month</button>
               <button id="viewYear" class="btn btn-ghost" type="button" data-i18n="year">Year</button>
               <button id="view3D" class="btn btn-ghost" type="button" data-i18n="threeD">3D</button>
+              <button id="viewProfile" class="btn btn-ghost" type="button" data-i18n="profileView">Profile</button>
             </div>
-            <div class="flex items-center gap-2 rounded-xl border px-2 py-1.5" style="border-color: var(--color-border); background: rgba(255,255,255,0.42);">
+            <div id="statsMetricControls" class="flex items-center gap-2 rounded-xl border px-2 py-1.5" style="border-color: var(--color-border); background: rgba(255,255,255,0.42);">
               <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-label);" data-i18n="calendarMetric">Metric</span>
               <button id="metricTokensBtn" class="btn btn-primary" type="button" style="min-height:36px; padding:8px 12px;" data-i18n="metricTokens">Tokens</button>
               <button id="metricEnergyBtn" class="btn btn-ghost" type="button" style="min-height:36px; padding:8px 12px;" data-i18n="metricEnergy">Energy</button>
@@ -1491,6 +1518,35 @@
         <div id="statsStatus" class="text-center py-10" style="display:none; color: var(--color-muted);">
           <div id="statsStatusMsg" class="font-semibold">Loading…</div>
           <button id="statsRetryBtn" class="btn btn-primary mt-3" type="button" style="display:none;" data-i18n="retry">Retry</button>
+        </div>
+
+        <!-- Profile view -->
+        <div id="calendarProfileView" style="display:none;">
+          <div class="profile-activity-shell">
+            <div class="profile-activity-summary-scroll">
+              <dl class="profile-activity-summary">
+                <div class="profile-activity-stat"><dd id="profileStatRecordedTokens">—</dd><dt data-i18n="recordedTokens">Recorded tokens</dt></div>
+                <div class="profile-activity-stat"><dd id="profileStatPeakDay">—</dd><dt data-i18n="profilePeakTokens">Peak tokens</dt></div>
+                <div class="profile-activity-stat"><dd id="profileStatActiveDays">—</dd><dt data-i18n="activeDays">Active Days</dt></div>
+                <div class="profile-activity-stat"><dd id="profileStatCurrentStreak">—</dd><dt data-i18n="streak">Streak</dt></div>
+                <div class="profile-activity-stat"><dd id="profileStatLongestStreak">—</dd><dt data-i18n="longestStreak">Longest Streak</dt></div>
+              </dl>
+            </div>
+            <div class="profile-activity-head">
+              <h3 data-i18n="tokenActivity">Token activity</h3>
+              <button id="profileModeDaily" class="profile-activity-mode" type="button" aria-pressed="true" data-i18n="daily">Daily</button>
+              <button id="profileModeWeekly" class="profile-activity-mode" type="button" aria-pressed="false" data-i18n="weekly">Weekly</button>
+              <button id="profileModeCumulative" class="profile-activity-mode" type="button" aria-pressed="false" data-i18n="cumulative">Cumulative</button>
+            </div>
+            <div id="profileActivityScroller" class="profile-activity-scroll">
+              <div class="profile-activity-grid-wrap">
+                <div id="profileActivityGrid" class="profile-activity-grid" role="grid" aria-label="Token activity"></div>
+                <div id="profileActivityWeekHits" class="profile-activity-week-hits" hidden></div>
+              </div>
+              <div id="profileActivityMonths" class="profile-activity-months" aria-hidden="true"></div>
+            </div>
+            <div id="profileActivityTooltip" class="profile-activity-tooltip" role="tooltip" hidden></div>
+          </div>
         </div>
 
         <!-- Month view -->
@@ -2148,6 +2204,14 @@
         activeDays: 'Active Days',
         totalDays: 'Total Days',
         dailyActivity: 'Daily Activity',
+        profileView: 'Profile',
+        recordedTokens: 'Recorded tokens',
+        profilePeakTokens: 'Peak tokens',
+        tokenActivity: 'Token activity',
+        daily: 'Daily',
+        weekly: 'Weekly',
+        cumulative: 'Cumulative',
+        estimatedCost: 'Estimated cost',
         calendarMetric: 'Metric',
         metricTokens: 'Tokens',
         metricEnergy: 'Energy',
@@ -2386,6 +2450,14 @@
         activeDays: '活跃天数',
         totalDays: '总天数',
         dailyActivity: '每日活跃',
+        profileView: '活动概览',
+        recordedTokens: '已记录 Token',
+        profilePeakTokens: '峰值 Token',
+        tokenActivity: 'Token 活跃度',
+        daily: '每日',
+        weekly: '每周',
+        cumulative: '累计',
+        estimatedCost: '预估费用',
         calendarMetric: '指标',
         metricTokens: 'Tokens',
         metricEnergy: '能耗',
