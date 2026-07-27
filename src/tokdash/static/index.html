@@ -530,11 +530,16 @@
     .overview-profile-metrics{display:flex;align-items:baseline;gap:18px;margin-bottom:10px;}
     .overview-profile-metrics>div{--overview-profile-tone:var(--color-primary);display:flex;align-items:baseline;gap:5px;}.overview-profile-metrics>div[data-tone="cost"]{--overview-profile-tone:var(--color-cost);}.overview-profile-metrics>div[data-tone="cta"]{--overview-profile-tone:var(--color-cta);}
     .overview-profile-metrics dd{margin:0;color:var(--overview-profile-tone);font-size:15px;font-weight:850;font-variant-numeric:tabular-nums;}.overview-profile-metrics dt{color:var(--color-muted);font-size:10px;white-space:nowrap;}
-    .overview-profile-heat-head{display:flex;justify-content:space-between;margin-bottom:6px;color:var(--color-muted);font-size:10px;}
+    .overview-profile-heat-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;color:var(--color-muted);font-size:10px;}
+    .overview-profile-heat-head>span{margin-right:auto;}
+    .overview-profile-modes{display:flex;align-items:center;gap:2px;}
+    .overview-profile-mode{padding:4px 7px;font-size:10px;}
     .overview-profile-scroll{overflow-x:auto;padding:2px 0 4px;}
-    .overview-profile-grid{display:grid;grid-auto-flow:column;grid-template-columns:repeat(52,minmax(8px,1fr));grid-template-rows:repeat(7,minmax(8px,1fr));gap:3px;min-width:572px;width:100%;}
+    .overview-profile-grid-wrap{position:relative;min-width:572px;}
+    .overview-profile-grid{display:grid;grid-auto-flow:column;grid-template-columns:repeat(52,minmax(8px,1fr));grid-template-rows:repeat(7,minmax(8px,1fr));gap:3px;width:100%;}
+    .overview-profile-week-hits{grid-template-columns:repeat(52,minmax(8px,1fr));gap:3px;}
     .overview-profile-cell{border-radius:2px;}
-    @media(max-width:800px){.overview-profile-band{grid-template-columns:1fr;gap:14px;}.overview-profile-copy{padding:0 0 12px;border-right:0;border-bottom:1px solid color-mix(in srgb,var(--color-primary) 16%,var(--color-border));}.overview-profile-metrics{flex-wrap:wrap;}}
+    @media(max-width:800px){.overview-profile-band{grid-template-columns:1fr;gap:14px;}.overview-profile-copy{padding:0 0 12px;border-right:0;border-bottom:1px solid color-mix(in srgb,var(--color-primary) 16%,var(--color-border));}.overview-profile-metrics{flex-wrap:wrap;}.overview-profile-heat-head{align-items:flex-start;flex-wrap:wrap;}.overview-profile-modes{margin-left:auto;}}
     @media(prefers-reduced-motion:reduce){.overview-profile-skeleton-grid{animation:none;}.overview-profile-cell{transform:none!important;}}
 
     .pricing-editor {
@@ -1089,7 +1094,7 @@
         <div class="overview-profile-copy">
           <div class="overview-profile-eyebrow" data-i18n="overviewProfileEyebrow">Profile activity</div>
           <h2 id="overviewProfileTitle" data-i18n="overviewProfileTitle">Your year in tokens</h2>
-          <p data-i18n="overviewProfileRange">Past 52 weeks · Daily</p>
+          <p data-i18n="overviewProfileRange">Past 52 weeks</p>
           <button id="overviewProfileOpen" class="overview-profile-open" type="button">
             <span data-i18n="viewFullProfile">View full profile</span>
             <span aria-hidden="true">→</span>
@@ -1109,11 +1114,18 @@
               <div data-tone="primary"><dd id="overviewProfileLongestStreak">—</dd><dt data-i18n="longestStreak">Longest Streak</dt></div>
             </dl>
             <div class="overview-profile-heat-head">
-              <span data-i18n="dailyActivity">Daily Activity</span>
-              <span><span data-i18n="less">Less</span> · <span data-i18n="more">More</span></span>
+              <span id="overviewProfileActivityLabel" data-i18n="tokenActivity">Token activity</span>
+              <div class="overview-profile-modes" role="group" aria-labelledby="overviewProfileActivityLabel">
+                <button id="overviewProfileModeDaily" class="profile-activity-mode overview-profile-mode" type="button" aria-pressed="true" data-i18n="daily">Daily</button>
+                <button id="overviewProfileModeWeekly" class="profile-activity-mode overview-profile-mode" type="button" aria-pressed="false" data-i18n="weekly">Weekly</button>
+                <button id="overviewProfileModeCumulative" class="profile-activity-mode overview-profile-mode" type="button" aria-pressed="false" data-i18n="cumulative">Cumulative</button>
+              </div>
             </div>
             <div id="overviewProfileScroller" class="overview-profile-scroll">
-              <div id="overviewProfileGrid" class="overview-profile-grid" role="grid" aria-label="Token activity"></div>
+              <div id="overviewProfileGridWrap" class="overview-profile-grid-wrap">
+                <div id="overviewProfileGrid" class="overview-profile-grid" role="grid" aria-label="Token activity"></div>
+                <div id="overviewProfileWeekHits" class="profile-activity-week-hits overview-profile-week-hits" hidden></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2310,7 +2322,7 @@
         dailyActivity: 'Daily Activity',
         overviewProfileEyebrow: 'Profile activity',
         overviewProfileTitle: 'Your year in tokens',
-        overviewProfileRange: 'Past 52 weeks · Daily',
+        overviewProfileRange: 'Past 52 weeks',
         viewFullProfile: 'View full profile',
         overviewProfileUnavailable: 'Profile activity is temporarily unavailable.',
         profileView: 'Profile',
@@ -2563,7 +2575,7 @@
         dailyActivity: '每日活跃',
         overviewProfileEyebrow: 'Profile 活动',
         overviewProfileTitle: '你的 Token 年度足迹',
-        overviewProfileRange: '过去 52 周 · 每日',
+        overviewProfileRange: '过去 52 周',
         viewFullProfile: '查看完整 Profile',
         overviewProfileUnavailable: 'Profile 活动暂时不可用。',
         profileView: '活动概览',
@@ -6463,10 +6475,7 @@
         });
       }
 
-      ['daily', 'weekly', 'cumulative'].forEach((mode) => {
-        const id = `profileMode${mode[0].toUpperCase()}${mode.slice(1)}`;
-        document.getElementById(id).setAttribute('aria-pressed', String(profileActivityMode === mode));
-      });
+      syncProfileActivityModeControls();
 
       requestAnimationFrame(ensureProfileActivityInitialScroll);
     }
@@ -6478,6 +6487,28 @@
       if (!shell) return;
       shell.dataset.state = state;
       shell.setAttribute('aria-busy', String(state === 'loading'));
+    }
+
+    function setOverviewProfileColumnHover(weekIndex, active) {
+      document.querySelectorAll(`#overviewProfileGrid [data-week-index="${weekIndex}"]`).forEach((cell) => {
+        cell.classList.toggle('is-column-hover', active);
+      });
+    }
+
+    function syncProfileActivityModeControls() {
+      const controls = {
+        daily: ['profileModeDaily', 'overviewProfileModeDaily'],
+        weekly: ['profileModeWeekly', 'overviewProfileModeWeekly'],
+        cumulative: ['profileModeCumulative', 'overviewProfileModeCumulative'],
+      };
+      Object.entries(controls).forEach(([mode, ids]) => {
+        ids.forEach((id) => {
+          document.getElementById(id)?.setAttribute(
+            'aria-pressed',
+            String(profileActivityMode === mode),
+          );
+        });
+      });
     }
 
     function ensureOverviewProfileInitialScroll() {
@@ -6494,38 +6525,69 @@
 
     function renderOverviewProfilePreview(contributions = statsCache.default) {
       const grid = document.getElementById('overviewProfileGrid');
-      if (!grid) return;
+      const hits = document.getElementById('overviewProfileWeekHits');
+      if (!grid || !hits) return;
+      syncProfileActivityModeControls();
       if (!Array.isArray(contributions)) {
         const shell = document.getElementById('overviewProfileSummary');
         if (shell?.dataset.state !== 'error') setOverviewProfileState('loading');
         return;
       }
 
-      const { summary, cells } = buildOverviewProfilePreview(contributions, new Date());
+      const { summary, cells, series } = buildOverviewProfilePreview(contributions, new Date(), profileActivityMode);
       document.getElementById('overviewProfileActiveDays').textContent = formatNumber(summary.activeDays || 0);
       document.getElementById('overviewProfileCurrentStreak').textContent = pluralDays(summary.currentStreak || 0);
       document.getElementById('overviewProfileLongestStreak').textContent = pluralDays(summary.longestStreak || 0);
       grid.style.setProperty('--profile-activity-empty', getProfileActivityColor(0));
       grid.style.setProperty('--profile-activity-strong', getProfileActivityColor(4));
+      document.getElementById('overviewProfileTooltip').hidden = true;
       grid.replaceChildren();
+      hits.replaceChildren();
 
       cells.forEach((definition) => {
-        const cell = document.createElement('button');
-        cell.type = 'button';
+        const cell = document.createElement(profileActivityMode === 'daily' ? 'button' : 'span');
         cell.className = 'profile-activity-cell overview-profile-cell';
         cell.setAttribute('role', 'gridcell');
-        cell.style.background = getProfileActivityColor(definition.level);
-        if (definition.day.isFuture) {
-          cell.disabled = true;
-          cell.setAttribute('aria-hidden', 'true');
+        if (profileActivityMode === 'daily') {
+          cell.type = 'button';
+          cell.style.background = getProfileActivityColor(definition.level);
+          if (definition.day.isFuture) {
+            cell.disabled = true;
+            cell.setAttribute('aria-hidden', 'true');
+          } else {
+            applyProfileMilestone(cell, definition.milestone);
+            cell.dataset.profileTooltipId = 'overviewProfileTooltip';
+            const tooltip = formatProfileDayTooltip(definition.day);
+            bindProfileActivityTooltip(cell, tooltip);
+          }
         } else {
-          cell.dataset.profileTooltipId = 'overviewProfileTooltip';
-          const tooltip = formatProfileDayTooltip(definition.day);
-          bindProfileActivityTooltip(cell, tooltip);
+          cell.dataset.weekIndex = String(definition.weekIndex);
+          cell.classList.toggle('is-aggregate', definition.active);
+          applyProfileMilestone(cell, definition.milestone);
         }
         grid.appendChild(cell);
       });
 
+      hits.hidden = profileActivityMode === 'daily';
+      if (profileActivityMode !== 'daily') {
+        series.forEach((aggregate, weekIndex) => {
+          const hit = document.createElement('button');
+          const milestone = getProfileMilestoneTier(aggregate?.totals?.tokens);
+          const tooltip = formatProfileAggregateTooltip(aggregate, profileActivityMode === 'cumulative');
+          hit.type = 'button';
+          hit.className = 'profile-activity-week-hit';
+          hit.dataset.profileTooltipId = 'overviewProfileTooltip';
+          applyProfileMilestone(hit, milestone);
+          bindProfileActivityTooltip(hit, tooltip);
+          hit.addEventListener('mouseenter', () => setOverviewProfileColumnHover(weekIndex, true));
+          hit.addEventListener('mouseleave', () => setOverviewProfileColumnHover(weekIndex, false));
+          hit.addEventListener('focus', () => setOverviewProfileColumnHover(weekIndex, true));
+          hit.addEventListener('blur', () => setOverviewProfileColumnHover(weekIndex, false));
+          hits.appendChild(hit);
+        });
+      }
+
+      syncProfileActivityModeControls();
       setOverviewProfileState('ready');
       requestAnimationFrame(ensureOverviewProfileInitialScroll);
     }
@@ -6533,7 +6595,9 @@
     function setProfileActivityMode(mode) {
       if (!['daily', 'weekly', 'cumulative'].includes(mode)) return;
       profileActivityMode = mode;
+      syncProfileActivityModeControls();
       if (calendarState.view === 'profile' && statsLoaded) renderProfileView();
+      if (isOverviewActive()) renderOverviewProfilePreview();
     }
 
     async function loadStats(options = {}) {
@@ -7786,6 +7850,9 @@
     document.getElementById('profileModeDaily').addEventListener('click', () => setProfileActivityMode('daily'));
     document.getElementById('profileModeWeekly').addEventListener('click', () => setProfileActivityMode('weekly'));
     document.getElementById('profileModeCumulative').addEventListener('click', () => setProfileActivityMode('cumulative'));
+    document.getElementById('overviewProfileModeDaily').addEventListener('click', () => setProfileActivityMode('daily'));
+    document.getElementById('overviewProfileModeWeekly').addEventListener('click', () => setProfileActivityMode('weekly'));
+    document.getElementById('overviewProfileModeCumulative').addEventListener('click', () => setProfileActivityMode('cumulative'));
     document.getElementById('overviewProfileOpen')?.addEventListener('click', openOverviewProfile);
     window.addEventListener('resize', ensureProfileActivityInitialScroll, { passive: true });
     window.addEventListener('resize', ensureOverviewProfileInitialScroll, { passive: true });

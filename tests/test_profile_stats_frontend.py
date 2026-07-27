@@ -653,7 +653,13 @@ def test_overview_profile_summary_markup_and_style_contract():
         "overviewProfileCurrentStreak",
         "overviewProfileLongestStreak",
         "overviewProfileScroller",
+        "overviewProfileModeDaily",
+        "overviewProfileModeWeekly",
+        "overviewProfileModeCumulative",
+        "overviewProfileActivityLabel",
+        "overviewProfileGridWrap",
         "overviewProfileGrid",
+        "overviewProfileWeekHits",
         "overviewProfileTooltip",
     ]
     for element_id in required_ids:
@@ -676,8 +682,58 @@ def test_overview_profile_summary_markup_and_style_contract():
     assert "grid-template-columns:repeat(52,minmax(8px,1fr))" in compact
     assert "gap:3px" in compact
     assert ".overview-profile-cell{border-radius:2px" in compact
+    assert "overviewProfileRange: 'Past 52 weeks'" in source
+    assert "overviewProfileRange: '过去 52 周'" in source
+    assert source.count('class="profile-activity-mode overview-profile-mode"') == 3
+    assert 'aria-labelledby="overviewProfileActivityLabel"' in source
+    assert 'aria-label="Activity aggregation"' not in source
+    assert ".overview-profile-grid-wrap{" in compact
+    assert ".overview-profile-mode{" in compact
+    assert 'id="overviewProfileWeekHits"' in source
     assert "@media(max-width:800px)" in compact
     assert ".overview-profile-cell{transform:none!important;}" in compact
+
+
+def test_overview_profile_modes_share_state_and_render_aggregate_hits_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    overview_renderer = _extract_js_function(
+        source,
+        "function renderOverviewProfilePreview(contributions = statsCache.default) {",
+    )
+    profile_renderer = _extract_js_function(source, "function renderProfileView() {")
+    setter = _extract_js_function(source, "function setProfileActivityMode(mode) {")
+    syncer = _extract_js_function(
+        source,
+        "function syncProfileActivityModeControls() {",
+    )
+
+    assert "buildOverviewProfilePreview(contributions, new Date(), profileActivityMode)" in overview_renderer
+    assert "profileActivityMode === 'daily' ? 'button' : 'span'" in overview_renderer
+    assert "overviewProfileWeekHits" in overview_renderer
+    assert "formatProfileAggregateTooltip(aggregate, profileActivityMode === 'cumulative')" in overview_renderer
+    assert "setOverviewProfileColumnHover(weekIndex, true)" in overview_renderer
+    assert "applyProfileMilestone(hit, milestone);" in overview_renderer
+    assert "fetch(" not in overview_renderer
+    assert "syncProfileActivityModeControls();" in overview_renderer
+    assert "syncProfileActivityModeControls();" in profile_renderer
+    assert "syncProfileActivityModeControls();" in setter
+    assert "if (isOverviewActive()) renderOverviewProfilePreview();" in setter
+    assert "fetch(" not in setter
+    for element_id in [
+        "profileModeDaily",
+        "profileModeWeekly",
+        "profileModeCumulative",
+        "overviewProfileModeDaily",
+        "overviewProfileModeWeekly",
+        "overviewProfileModeCumulative",
+    ]:
+        assert element_id in syncer
+    for element_id in [
+        "overviewProfileModeDaily",
+        "overviewProfileModeWeekly",
+        "overviewProfileModeCumulative",
+    ]:
+        assert f"document.getElementById('{element_id}').addEventListener" in source
 
 
 def test_overview_profile_navigation_preserves_profile_state_contract():
