@@ -277,7 +277,7 @@ def test_profile_week_aggregates_breakdown_and_cost_across_year_boundary(tmp_pat
 Run:
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt --with pytest \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt --with pytest \
   python -m pytest tests/test_profile_stats_frontend.py -q
 ```
 
@@ -496,7 +496,7 @@ def test_profile_view_html_and_localization_contract():
 - [ ] **Step 2: Run the contract test and verify it fails**
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt --with pytest \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt --with pytest \
   python -m pytest tests/test_profile_stats_frontend.py::test_profile_view_html_and_localization_contract -q
 ```
 
@@ -613,7 +613,7 @@ estimatedCost: '预估费用',
 - [ ] **Step 6: Run the contract test and all focused tests**
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt --with pytest \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt --with pytest \
   python -m pytest tests/test_profile_stats_frontend.py -q
 ```
 
@@ -949,7 +949,7 @@ window.addEventListener('resize', ensureProfileActivityInitialScroll, { passive:
 - [ ] **Step 6: Run focused tests**
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt --with pytest \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt --with pytest \
   python -m pytest tests/test_profile_stats_frontend.py -q
 ```
 
@@ -978,7 +978,7 @@ git commit -m "feat: render profile token activity views"
 Run the test file containing both `test_main_inline_script_parses_with_node` (`node --check` on the complete shipped application script) and the extracted pure-helper behavior cases:
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt --with pytest \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt --with pytest \
   python -m pytest tests/test_profile_stats_frontend.py -q
 ```
 
@@ -987,7 +987,7 @@ Expected: all seven Profile frontend tests pass. Both the whole-script `node --c
 - [ ] **Step 2: Run the repository's CI compile command**
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt \
   python -m compileall -q src/tokdash main.py docs/guides/agents/openclaw_reporting/openclaw_cron_job.py
 ```
 
@@ -996,7 +996,7 @@ Expected: exit code 0 and no output.
 - [ ] **Step 3: Run the full test suite**
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt --with pytest \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt --with pytest \
   python -m pytest -q
 ```
 
@@ -1015,7 +1015,7 @@ Expected in the current repository: no configured linter or static type checker 
 - [ ] **Step 5: Start the feature branch locally without replacing the installed Tokdash**
 
 ```bash
-uv run --with-editable . --with-requirements requirements-dev.txt \
+uv run --no-project --with-editable . --with-requirements requirements-dev.txt \
   tokdash serve --bind 127.0.0.1 --port 55424 --no-open
 ```
 
