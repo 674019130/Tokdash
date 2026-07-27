@@ -6057,20 +6057,43 @@
         ? `${formatShortDate(aggregate.startDate, true)} → ${formatShortDate(aggregate.endDate, true)}`
         : '—';
       const singleDate = aggregate?.startDate === aggregate?.endDate;
-      const heading = cumulative
+      const title = cumulative
         ? `${t('cumulative')} · ${range}`
         : (singleDate ? formatShortDate(aggregate.startDate, true) : range);
       const breakdown = aggregate?.tokenBreakdown || {};
-      return [
-        heading,
-        `${t('total')}: ${formatNumber(aggregate?.totals?.tokens || 0)} ${t('tokensUnit')}`,
-        `${t('input')}: ${formatNumber(breakdown.input || 0)}`,
-        `${t('output')}: ${formatNumber(breakdown.output || 0)}`,
-        `${t('cacheRead')}: ${formatNumber(breakdown.cacheRead || 0)}`,
-        `${t('cacheWrite')}: ${formatNumber(breakdown.cacheWrite || 0)}`,
-        breakdown.reasoning ? `${t('reasoning')}: ${formatNumber(breakdown.reasoning)}` : null,
-        `${t('estimatedCost')}: ${formatCurrency(aggregate?.totals?.cost || 0)}`,
-      ].filter(Boolean).join('\n');
+      const definitions = [
+        {
+          key: 'total',
+          label: t('total'),
+          value: `${formatNumber(safeProfileNumber(aggregate?.totals?.tokens))} ${t('tokensUnit')}`,
+          tone: 'primary',
+          prominent: true,
+        },
+        { key: 'input', label: t('input'), value: formatNumber(safeProfileNumber(breakdown.input)), tone: 'primary', prominent: false },
+        { key: 'output', label: t('output'), value: formatNumber(safeProfileNumber(breakdown.output)), tone: 'secondary', prominent: false },
+        { key: 'cacheRead', label: t('cacheRead'), value: formatNumber(safeProfileNumber(breakdown.cacheRead)), tone: 'cost', prominent: false },
+        { key: 'cacheWrite', label: t('cacheWrite'), value: formatNumber(safeProfileNumber(breakdown.cacheWrite)), tone: 'cta', prominent: false },
+        {
+          key: 'reasoning',
+          label: t('reasoning'),
+          value: formatNumber(safeProfileNumber(breakdown.reasoning)),
+          tone: 'reasoning',
+          prominent: false,
+          include: safeProfileNumber(breakdown.reasoning) > 0,
+        },
+        {
+          key: 'estimatedCost',
+          label: t('estimatedCost'),
+          value: formatCurrency(safeProfileNumber(aggregate?.totals?.cost)),
+          tone: 'cost',
+          prominent: false,
+        },
+      ];
+      const rows = definitions
+        .filter((row) => row.include !== false)
+        .map(({ include, ...row }) => row);
+      const accessibleText = [title, ...rows.map((row) => `${row.label}: ${row.value}`)].join('. ');
+      return { title, rows, accessibleText };
     }
 
     function formatProfileDayTooltip(day) {
@@ -6082,10 +6105,10 @@
       });
     }
 
-    function showProfileActivityTooltip(target, content) {
+    function showProfileActivityTooltip(target, model) {
       const tooltip = document.getElementById('profileActivityTooltip');
-      if (!tooltip || !target || !content) return;
-      tooltip.textContent = content;
+      if (!tooltip || !target || !model?.title) return;
+      tooltip.textContent = model.accessibleText;
       tooltip.hidden = false;
       target.setAttribute('aria-describedby', tooltip.id);
       const rect = target.getBoundingClientRect();
@@ -6106,11 +6129,11 @@
       if (target) target.removeAttribute('aria-describedby');
     }
 
-    function bindProfileActivityTooltip(target, content) {
-      target.setAttribute('aria-label', content.replaceAll('\n', ', '));
-      target.addEventListener('mouseenter', () => showProfileActivityTooltip(target, content));
+    function bindProfileActivityTooltip(target, model) {
+      target.setAttribute('aria-label', model.accessibleText);
+      target.addEventListener('mouseenter', () => showProfileActivityTooltip(target, model));
       target.addEventListener('mouseleave', () => hideProfileActivityTooltip(target));
-      target.addEventListener('focus', () => showProfileActivityTooltip(target, content));
+      target.addEventListener('focus', () => showProfileActivityTooltip(target, model));
       target.addEventListener('blur', () => hideProfileActivityTooltip(target));
     }
 

@@ -66,6 +66,50 @@ def _run_profile_js(tmp_path: Path, expression: str, payload: dict) -> object:
     return json.loads(result.stdout)
 
 
+TOOLTIP_JS_SETUP = """
+const LABELS = {
+  cumulative: 'Cumulative', total: 'Total', tokensUnit: 'tokens',
+  input: 'Input', output: 'Output', cacheRead: 'Cache read',
+  cacheWrite: 'Cache write', reasoning: 'Reasoning',
+  estimatedCost: 'Estimated cost',
+};
+function t(key) { return LABELS[key] || key; }
+function formatNumber(value) { return new Intl.NumberFormat('en-US').format(Number(value) || 0); }
+function formatCurrency(value) { return `$${(Number(value) || 0).toFixed(2)}`; }
+function formatShortDate(value) { return value || '—'; }
+"""
+
+
+def _run_profile_tooltip_js(tmp_path: Path, expression: str, payload: dict) -> object:
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    functions = "\n".join(
+        [
+            _extract_js_function(source, "function safeProfileNumber(value) {"),
+            _extract_js_function(
+                source,
+                "function formatProfileAggregateTooltip(aggregate, cumulative = false) {",
+            ),
+        ]
+    )
+    harness = tmp_path / "profile-tooltip.js"
+    harness.write_text(
+        TOOLTIP_JS_SETUP
+        + "\n"
+        + functions
+        + "\nconst payload = JSON.parse(process.argv[2]);\n"
+        + f"const result = {expression};\n"
+        + "process.stdout.write(JSON.stringify(result));\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        ["node", str(harness), json.dumps(payload)],
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+    )
+    return json.loads(result.stdout)
+
+
 def _day(date: str, tokens: int, *, cost: float = 0.0) -> dict:
     return {
         "date": date,
@@ -231,6 +275,101 @@ def test_profile_week_aggregates_breakdown_and_cost_across_year_boundary(
     }
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_profile_tooltip_model_has_semantic_rows_and_accessible_text(tmp_path: Path):
+    payload = {
+        "aggregate": {
+            "startDate": "2026-07-20",
+            "endDate": "2026-07-26",
+            "totals": {"tokens": 1234, "cost": 1.25},
+            "tokenBreakdown": {
+                "input": 500,
+                "output": 300,
+                "cacheRead": 250,
+                "cacheWrite": 100,
+                "reasoning": 84,
+            },
+        }
+    }
+    result = _run_profile_tooltip_js(
+        tmp_path,
+        "formatProfileAggregateTooltip(payload.aggregate)",
+        payload,
+    )
+    assert result["title"] == "2026-07-20 → 2026-07-26"
+    assert [row["key"] for row in result["rows"]] == [
+        "total",
+        "input",
+        "output",
+        "cacheRead",
+        "cacheWrite",
+        "reasoning",
+        "estimatedCost",
+    ]
+    assert [row["tone"] for row in result["rows"]] == [
+        "primary",
+        "primary",
+        "secondary",
+        "cost",
+        "cta",
+        "reasoning",
+        "cost",
+    ]
+    assert result["rows"][0] == {
+        "key": "total",
+        "label": "Total",
+        "value": "1,234 tokens",
+        "tone": "primary",
+        "prominent": True,
+    }
+    assert result["accessibleText"] == (
+        "2026-07-20 → 2026-07-26. Total: 1,234 tokens. Input: 500. "
+        "Output: 300. Cache read: 250. Cache write: 100. Reasoning: 84. "
+        "Estimated cost: $1.25"
+    )
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_profile_tooltip_keeps_zero_rows_and_omits_zero_reasoning(tmp_path: Path):
+    payload = {
+        "aggregate": {
+            "startDate": "2026-07-20",
+            "endDate": "2026-07-26",
+            "totals": {"tokens": 0, "cost": 0},
+            "tokenBreakdown": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "reasoning": 0,
+            },
+        }
+    }
+    result = _run_profile_tooltip_js(
+        tmp_path,
+        "formatProfileAggregateTooltip(payload.aggregate, true)",
+        payload,
+    )
+    assert result["title"] == "Cumulative · 2026-07-20 → 2026-07-26"
+    assert [row["key"] for row in result["rows"]] == [
+        "total",
+        "input",
+        "output",
+        "cacheRead",
+        "cacheWrite",
+        "estimatedCost",
+    ]
+    assert [row["value"] for row in result["rows"]] == [
+        "0 tokens",
+        "0",
+        "0",
+        "0",
+        "0",
+        "$0.00",
+    ]
+    assert "Reasoning" not in result["accessibleText"]
+
+
 def test_profile_view_html_and_localization_contract():
     source = INDEX_HTML.read_text(encoding="utf-8")
     required_ids = [
@@ -261,7 +400,7 @@ def test_profile_view_html_and_localization_contract():
     assert "border-radius:2px" in source.replace(" ", "")
     assert "function renderProfileView() {" in source
     assert "function setProfileActivityMode(mode) {" in source
-    assert "function showProfileActivityTooltip(target, content) {" in source
+    assert "function showProfileActivityTooltip(target, model) {" in source
     assert "setView('profile')" in source
     assert "renderProfileView();" in source
     assert "'calendarProfileView'" in source
