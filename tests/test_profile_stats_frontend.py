@@ -73,7 +73,7 @@ const LABELS = {
   cumulative: 'Cumulative', total: 'Total', tokensUnit: 'tokens',
   input: 'Input', output: 'Output', cacheRead: 'Cache read',
   cacheWrite: 'Cache write', reasoning: 'Reasoning',
-  estimatedCost: 'Estimated cost',
+  estimatedCost: 'Estimated cost', milestone: 'Milestone',
 };
 function t(key) { return LABELS[key] || key; }
 function formatNumber(value) { return new Intl.NumberFormat('en-US').format(Number(value) || 0); }
@@ -87,6 +87,7 @@ def _run_profile_tooltip_js(tmp_path: Path, expression: str, payload: dict) -> o
     functions = "\n".join(
         [
             _extract_js_function(source, "function safeProfileNumber(value) {"),
+            _extract_js_function(source, "function getProfileMilestoneTier(value) {"),
             _extract_js_function(
                 source,
                 "function formatProfileAggregateTooltip(aggregate, cumulative = false) {",
@@ -465,6 +466,78 @@ def test_profile_tooltip_keeps_zero_rows_and_omits_zero_reasoning(tmp_path: Path
         "$0.00",
     ]
     assert "Reasoning" not in result["accessibleText"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_profile_tooltip_exposes_milestone_badge_tone_and_accessible_text(
+    tmp_path: Path,
+):
+    payload = {
+        "high": {
+            "startDate": "2026-07-20",
+            "endDate": "2026-07-26",
+            "totals": {"tokens": 1_000_000_000, "cost": 12.5},
+            "tokenBreakdown": {
+                "input": 400_000_000,
+                "output": 300_000_000,
+                "cacheRead": 200_000_000,
+                "cacheWrite": 100_000_000,
+                "reasoning": 0,
+            },
+        },
+        "normal": {
+            "startDate": "2026-07-27",
+            "endDate": "2026-07-27",
+            "totals": {"tokens": 99_999_999, "cost": 1.0},
+            "tokenBreakdown": {},
+        },
+    }
+    result = _run_profile_tooltip_js(
+        tmp_path,
+        "({ high: formatProfileAggregateTooltip(payload.high), normal: formatProfileAggregateTooltip(payload.normal) })",
+        payload,
+    )
+
+    assert result["high"]["milestone"] == {
+        "level": 4,
+        "minTokens": 1_000_000_000,
+        "label": "1B+",
+        "tone": "milestone-4",
+    }
+    assert result["high"]["rows"][0]["tone"] == "milestone-4"
+    assert "Milestone: 1B+" in result["high"]["accessibleText"]
+    assert result["normal"]["milestone"] is None
+    assert result["normal"]["rows"][0]["tone"] == "primary"
+    assert "Milestone:" not in result["normal"]["accessibleText"]
+
+
+def test_profile_milestone_tooltip_and_tier_aura_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", "", source)
+    formatter = _extract_js_function(
+        source,
+        "function formatProfileAggregateTooltip(aggregate, cumulative = false) {",
+    )
+    renderer = _extract_js_function(
+        source,
+        "function renderProfileActivityTooltipContent(tooltip, model) {",
+    )
+    profile_renderer = _extract_js_function(source, "function renderProfileView() {")
+
+    assert "milestone: 'Milestone'" in source
+    assert "milestone: '里程碑'" in source
+    assert "getProfileMilestoneTier(tokenTotal)" in formatter
+    assert "profile-activity-tooltip-badge" in renderer
+    assert "badge.textContent = model.milestone.label;" in renderer
+    assert "tooltip.dataset.milestone" in renderer
+    assert ".innerHTML" not in renderer
+    assert "applyProfileMilestone(cell, definition.milestone);" in profile_renderer
+    assert "applyProfileMilestone(hit, milestone);" in profile_renderer
+    for level in range(1, 5):
+        assert f'--profile-milestone-{level}:' in compact
+        assert f'[data-milestone="{level}"]' in source
+        assert f'[data-tone="milestone-{level}"]' in source
+    assert "prefers-reduced-motion:reduce" in compact
 
 
 def test_profile_view_html_and_localization_contract():

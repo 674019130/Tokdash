@@ -488,6 +488,27 @@
     .profile-activity-tooltip-label{min-width:0;color:var(--color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .profile-activity-tooltip-value{color:var(--profile-tooltip-tone);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:750;text-align:right;white-space:nowrap;}
     .profile-activity-tooltip-row[data-prominent="true"] .profile-activity-tooltip-value{font-size:13px;font-weight:850;}
+    .profile-activity-shell,.overview-profile-band{--profile-milestone-1:#06b6d4;--profile-milestone-2:#8b5cf6;--profile-milestone-3:#f59e0b;--profile-milestone-4:#ec4899;}
+    .profile-activity-cell[data-milestone="1"],.profile-activity-week-hit[data-milestone="1"],.profile-activity-tooltip-badge[data-milestone="1"]{--profile-milestone-tone:var(--profile-milestone-1);}
+    .profile-activity-cell[data-milestone="2"],.profile-activity-week-hit[data-milestone="2"],.profile-activity-tooltip-badge[data-milestone="2"]{--profile-milestone-tone:var(--profile-milestone-2);}
+    .profile-activity-cell[data-milestone="3"],.profile-activity-week-hit[data-milestone="3"],.profile-activity-tooltip-badge[data-milestone="3"]{--profile-milestone-tone:var(--profile-milestone-3);}
+    .profile-activity-cell[data-milestone="4"],.profile-activity-week-hit[data-milestone="4"],.profile-activity-tooltip-badge[data-milestone="4"]{--profile-milestone-tone:var(--profile-milestone-4);}
+    .profile-activity-cell[data-milestone="1"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-milestone-tone) 66%,transparent);}
+    .profile-activity-cell[data-milestone="2"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-milestone-tone) 72%,transparent),0 0 7px color-mix(in srgb,var(--profile-milestone-tone) 34%,transparent);}
+    .profile-activity-cell[data-milestone="3"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-milestone-tone) 82%,transparent),0 0 0 2px color-mix(in srgb,var(--profile-milestone-tone) 22%,transparent),0 0 10px color-mix(in srgb,var(--profile-milestone-tone) 44%,transparent);}
+    .profile-activity-cell[data-milestone="4"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--color-text) 74%,transparent),0 0 0 3px color-mix(in srgb,var(--profile-milestone-tone) 38%,transparent),0 0 14px color-mix(in srgb,var(--profile-milestone-tone) 58%,transparent);}
+    button.profile-activity-cell[data-milestone]:not(:disabled):is(:hover,:focus-visible),.profile-activity-cell[data-milestone].is-column-hover{box-shadow:0 0 0 1px color-mix(in srgb,var(--color-text) 82%,transparent),0 0 0 3px color-mix(in srgb,var(--profile-milestone-tone) 48%,transparent),0 0 18px color-mix(in srgb,var(--profile-milestone-tone) 68%,transparent);}
+    .profile-activity-week-hit[data-milestone]:focus-visible{outline-color:var(--profile-milestone-tone);box-shadow:0 0 12px color-mix(in srgb,var(--profile-milestone-tone) 24%,transparent);}
+    .profile-activity-tooltip-header{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .profile-activity-tooltip-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .profile-activity-tooltip-badge{flex:0 0 auto;padding:2px 6px;border:1px solid color-mix(in srgb,var(--profile-milestone-tone) 48%,transparent);border-radius:999px;background:color-mix(in srgb,var(--profile-milestone-tone) 13%,transparent);color:var(--profile-milestone-tone);box-shadow:0 0 10px color-mix(in srgb,var(--profile-milestone-tone) 22%,transparent);font-size:9px;font-weight:900;letter-spacing:.04em;}
+    .profile-activity-tooltip-row[data-tone="milestone-1"]{--profile-tooltip-tone:var(--profile-milestone-1);}
+    .profile-activity-tooltip-row[data-tone="milestone-2"]{--profile-tooltip-tone:var(--profile-milestone-2);}
+    .profile-activity-tooltip-row[data-tone="milestone-3"]{--profile-tooltip-tone:var(--profile-milestone-3);}
+    .profile-activity-tooltip-row[data-tone="milestone-4"]{--profile-tooltip-tone:var(--profile-milestone-4);}
+    .overview-profile-cell[data-milestone="2"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-milestone-tone) 66%,transparent),0 0 5px color-mix(in srgb,var(--profile-milestone-tone) 22%,transparent);}
+    .overview-profile-cell[data-milestone="3"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-milestone-tone) 76%,transparent),0 0 0 2px color-mix(in srgb,var(--profile-milestone-tone) 18%,transparent),0 0 7px color-mix(in srgb,var(--profile-milestone-tone) 30%,transparent);}
+    .overview-profile-cell[data-milestone="4"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--color-text) 68%,transparent),0 0 0 2px color-mix(in srgb,var(--profile-milestone-tone) 30%,transparent),0 0 9px color-mix(in srgb,var(--profile-milestone-tone) 42%,transparent);}
     .profile-activity-months{display:flex;justify-content:space-between;min-width:572px;margin-top:8px;color:var(--color-muted);font-size:12px;}
     @media(max-width:640px){.profile-activity-head{gap:6px;flex-wrap:wrap;font-size:13px;}.profile-activity-head h3{flex:1 0 100%;margin-bottom:2px;}.profile-activity-mode{padding:5px 8px;}.profile-activity-shell{max-width:100%;}}
 
@@ -897,6 +918,7 @@
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; scroll-behavior: auto !important; }
       .profile-activity-cell{transform:none!important;}
+      button.profile-activity-cell[data-milestone]:not(:disabled):is(:hover,:focus-visible){transform:none;transition:none;}
     }
   </style>
   <script>document.write(`<link rel="stylesheet" href="${window.tokdashPath('/static/themes.css')}" />`);</script>
@@ -2299,6 +2321,7 @@
         weekly: 'Weekly',
         cumulative: 'Cumulative',
         estimatedCost: 'Estimated cost',
+        milestone: 'Milestone',
         calendarMetric: 'Metric',
         metricTokens: 'Tokens',
         metricEnergy: 'Energy',
@@ -2551,6 +2574,7 @@
         weekly: '每周',
         cumulative: '累计',
         estimatedCost: '预估费用',
+        milestone: '里程碑',
         calendarMetric: '指标',
         metricTokens: 'Tokens',
         metricEnergy: '能耗',
@@ -6212,12 +6236,14 @@
         ? `${t('cumulative')} · ${range}`
         : (singleDate ? formatShortDate(aggregate.startDate, true) : range);
       const breakdown = aggregate?.tokenBreakdown || {};
+      const tokenTotal = safeProfileNumber(aggregate?.totals?.tokens);
+      const milestone = getProfileMilestoneTier(tokenTotal);
       const definitions = [
         {
           key: 'total',
           label: t('total'),
-          value: `${formatNumber(safeProfileNumber(aggregate?.totals?.tokens))} ${t('tokensUnit')}`,
-          tone: 'primary',
+          value: `${formatNumber(tokenTotal)} ${t('tokensUnit')}`,
+          tone: milestone?.tone || 'primary',
           prominent: true,
         },
         { key: 'input', label: t('input'), value: formatNumber(safeProfileNumber(breakdown.input)), tone: 'primary', prominent: false },
@@ -6243,8 +6269,12 @@
       const rows = definitions
         .filter((row) => row.include !== false)
         .map(({ include, ...row }) => row);
-      const accessibleText = [title, ...rows.map((row) => `${row.label}: ${row.value}`)].join('. ');
-      return { title, rows, accessibleText };
+      const accessibleText = [
+        title,
+        milestone ? `${t('milestone')}: ${milestone.label}` : '',
+        ...rows.map((row) => `${row.label}: ${row.value}`),
+      ].filter(Boolean).join('. ');
+      return { title, rows, milestone, accessibleText };
     }
 
     function formatProfileDayTooltip(day) {
@@ -6259,7 +6289,20 @@
     function renderProfileActivityTooltipContent(tooltip, model) {
       const header = document.createElement('div');
       header.className = 'profile-activity-tooltip-header';
-      header.textContent = model.title;
+      const headerTitle = document.createElement('span');
+      headerTitle.className = 'profile-activity-tooltip-title';
+      headerTitle.textContent = model.title;
+      header.appendChild(headerTitle);
+      if (model.milestone) {
+        const badge = document.createElement('span');
+        badge.className = 'profile-activity-tooltip-badge';
+        badge.dataset.milestone = String(model.milestone.level);
+        badge.textContent = model.milestone.label;
+        header.appendChild(badge);
+        tooltip.dataset.milestone = String(model.milestone.level);
+      } else {
+        delete tooltip.dataset.milestone;
+      }
 
       const body = document.createElement('div');
       body.className = 'profile-activity-tooltip-body';
@@ -6359,6 +6402,11 @@
       }
     }
 
+    function applyProfileMilestone(target, milestone) {
+      if (!target || !milestone) return;
+      target.dataset.milestone = String(milestone.level);
+    }
+
     function renderProfileView() {
       const today = new Date();
       const days = getProfileActivityWindow(statsCache.default || calendarState.contributions || [], today);
@@ -6385,12 +6433,14 @@
             cell.disabled = true;
             cell.setAttribute('aria-hidden', 'true');
           } else {
+            applyProfileMilestone(cell, definition.milestone);
             const tooltip = formatProfileDayTooltip(definition.day);
             bindProfileActivityTooltip(cell, tooltip);
           }
         } else {
           cell.dataset.weekIndex = String(definition.weekIndex);
           cell.classList.toggle('is-aggregate', definition.active);
+          applyProfileMilestone(cell, definition.milestone);
         }
         grid.appendChild(cell);
       });
@@ -6402,6 +6452,8 @@
           const tooltip = formatProfileAggregateTooltip(aggregate, profileActivityMode === 'cumulative');
           hit.type = 'button';
           hit.className = 'profile-activity-week-hit';
+          const milestone = getProfileMilestoneTier(aggregate?.totals?.tokens);
+          applyProfileMilestone(hit, milestone);
           bindProfileActivityTooltip(hit, tooltip);
           hit.addEventListener('mouseenter', () => setProfileColumnHover(weekIndex, true));
           hit.addEventListener('mouseleave', () => setProfileColumnHover(weekIndex, false));
