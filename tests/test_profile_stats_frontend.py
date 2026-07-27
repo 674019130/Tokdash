@@ -406,6 +406,37 @@ def test_profile_view_html_and_localization_contract():
     assert "'calendarProfileView'" in source
 
 
+def test_profile_visual_polish_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", "", source)
+    assert re.findall(
+        r'class="profile-activity-stat" data-tone="([^"]+)"', source
+    ) == ["primary", "secondary", "cost", "cta", "primary"]
+    assert '.profile-activity-head h3::before' in source
+    assert '.profile-activity-mode[aria-pressed="true"]' in source
+    assert '.profile-activity-tooltip-header' in source
+    assert '.profile-activity-tooltip-row[data-tone="reasoning"]' in source
+    assert '.profile-activity-tooltip-row[data-key="estimatedCost"]' in source
+    assert "button.profile-activity-cell:not(:disabled):is(:hover,:focus-visible)" in source
+    assert ".profile-activity-cell{transform:none!important;}" in compact
+
+    renderer = _extract_js_function(
+        source,
+        "function renderProfileActivityTooltipContent(tooltip, model) {",
+    )
+    assert "document.createElement(" in renderer
+    assert ".textContent =" in renderer
+    assert "tooltip.replaceChildren(header, body);" in renderer
+    assert ".innerHTML" not in renderer
+
+    binder = _extract_js_function(
+        source,
+        "function bindProfileActivityTooltip(target, model) {",
+    )
+    assert "model.accessibleText" in binder
+    assert "content.replaceAll" not in binder
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_main_inline_script_parses_with_node(tmp_path: Path):
     source = INDEX_HTML.read_text(encoding="utf-8")

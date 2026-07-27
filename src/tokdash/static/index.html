@@ -446,29 +446,50 @@
 
     .profile-activity-shell{max-width:732px;margin:0 auto;}
     .profile-activity-summary-scroll{overflow-x:auto;padding-bottom:2px;}
-    .profile-activity-summary{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));min-width:600px;border:1px solid var(--color-border);border-radius:16px;overflow:hidden;background:color-mix(in srgb,var(--color-surface-glass) 82%,transparent);}
-    .profile-activity-stat{position:relative;padding:12px 8px;text-align:center;}
+    .profile-activity-summary{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));min-width:600px;border:1px solid color-mix(in srgb,var(--color-primary) 18%,var(--color-border));border-radius:16px;overflow:hidden;background:color-mix(in srgb,var(--color-surface-glass) 88%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--color-primary) 13%,transparent),0 12px 32px color-mix(in srgb,var(--color-primary) 7%,transparent);}
+    .profile-activity-stat{--profile-stat-tone:var(--color-primary);position:relative;padding:12px 8px;text-align:center;}
+    .profile-activity-stat[data-tone="secondary"]{--profile-stat-tone:var(--color-secondary);}
+    .profile-activity-stat[data-tone="cost"]{--profile-stat-tone:var(--color-cost);}
+    .profile-activity-stat[data-tone="cta"]{--profile-stat-tone:var(--color-cta);}
     .profile-activity-stat+.profile-activity-stat::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:1px;background:var(--color-border);}
-    .profile-activity-stat dd{margin:0;color:var(--color-text);font-weight:800;font-size:15px;}
+    .profile-activity-stat dd{margin:0;color:var(--profile-stat-tone);font-weight:850;font-size:15px;text-shadow:0 0 14px color-mix(in srgb,var(--profile-stat-tone) 20%,transparent);}
     .profile-activity-stat dt{margin-top:3px;color:var(--color-muted);font-size:12px;white-space:nowrap;}
-    .profile-activity-head{display:flex;align-items:center;gap:16px;margin:32px 0 12px;}
-    .profile-activity-head h3{margin-right:auto;font-size:16px;font-weight:800;}
-    .profile-activity-mode{border:0;padding:0;background:transparent;color:var(--color-muted);font:inherit;cursor:pointer;}
-    .profile-activity-mode[aria-pressed="true"]{color:var(--color-text);}
+    .profile-activity-head{display:flex;align-items:center;gap:8px;margin:32px 0 12px;}
+    .profile-activity-head h3{display:flex;align-items:center;gap:8px;margin-right:auto;font-size:16px;font-weight:800;}
+    .profile-activity-head h3::before{content:"";width:4px;height:16px;border-radius:999px;background:var(--color-primary);box-shadow:0 0 12px color-mix(in srgb,var(--color-primary) 38%,transparent);}
+    .profile-activity-mode{border:1px solid transparent;border-radius:999px;padding:5px 9px;background:transparent;color:var(--color-muted);font:inherit;line-height:1.2;cursor:pointer;transition:color .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease;}
+    .profile-activity-mode:is(:hover,:focus-visible){color:var(--color-text);border-color:color-mix(in srgb,var(--color-primary) 18%,transparent);background:color-mix(in srgb,var(--color-primary) 8%,transparent);}
+    .profile-activity-mode:focus-visible{outline:2px solid color-mix(in srgb,var(--color-primary) 52%,transparent);outline-offset:2px;}
+    .profile-activity-mode[aria-pressed="true"]{color:var(--color-primary);border-color:color-mix(in srgb,var(--color-primary) 32%,transparent);background:color-mix(in srgb,var(--color-primary) 13%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--color-primary) 18%,transparent),0 0 14px color-mix(in srgb,var(--color-primary) 10%,transparent);}
     .profile-activity-scroll{overflow-x:auto;padding:8px 0 12px;}
     .profile-activity-grid-wrap{position:relative;min-width:572px;}
     .profile-activity-grid{display:grid;grid-auto-flow:column;grid-template-columns:repeat(52,minmax(8px,1fr));grid-template-rows:repeat(7,minmax(8px,1fr));gap:3px;width:100%;}
-    .profile-activity-cell{width:100%;aspect-ratio:1;border:0;border-radius:2px;background:var(--profile-activity-empty,var(--color-border));padding:0;position:relative;}
+    .profile-activity-cell{width:100%;aspect-ratio:1;border:0;border-radius:2px;background:var(--profile-activity-empty,var(--color-border));padding:0;position:relative;transition:filter .12s ease,transform .12s ease,box-shadow .12s ease;}
     button.profile-activity-cell{cursor:pointer;}
+    button.profile-activity-cell:not(:disabled):is(:hover,:focus-visible){z-index:1;outline:none;filter:brightness(1.14);transform:translateY(-1px);box-shadow:0 0 0 1px color-mix(in srgb,var(--color-primary) 62%,transparent),0 4px 10px color-mix(in srgb,var(--color-primary) 20%,transparent);}
     .profile-activity-cell.is-aggregate{background:var(--profile-activity-strong,var(--color-primary));}
-    .profile-activity-cell.is-column-hover.is-aggregate{filter:brightness(1.12);box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-activity-strong,var(--color-primary)) 55%,transparent);}
-    .profile-activity-cell.is-column-hover:not(.is-aggregate){background:color-mix(in srgb,var(--color-primary) 14%,var(--color-border));}
+    .profile-activity-cell.is-column-hover.is-aggregate{filter:brightness(1.16);box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-activity-strong,var(--color-primary)) 72%,transparent),0 0 9px color-mix(in srgb,var(--color-primary) 18%,transparent);}
+    .profile-activity-cell.is-column-hover:not(.is-aggregate){background:color-mix(in srgb,var(--color-primary) 16%,var(--color-border));box-shadow:0 0 0 1px color-mix(in srgb,var(--color-primary) 30%,transparent);}
     .profile-activity-week-hits{position:absolute;inset:0;display:grid;grid-template-columns:repeat(52,minmax(8px,1fr));gap:3px;pointer-events:none;}
     .profile-activity-week-hit{position:relative;min-width:8px;border:0;background:transparent;padding:0;pointer-events:auto;cursor:pointer;}
-    .profile-activity-tooltip{position:fixed;z-index:120;max-width:280px;padding:7px 9px;border:1px solid var(--color-border);border-radius:8px;background:var(--color-surface-glass);color:var(--color-text);box-shadow:var(--shadow-md);white-space:pre-line;text-align:left;font-size:11px;line-height:1.35;pointer-events:none;}
+    .profile-activity-week-hit:focus-visible{outline:2px solid color-mix(in srgb,var(--color-primary) 62%,transparent);outline-offset:2px;border-radius:2px;}
+    .profile-activity-tooltip{position:fixed;z-index:120;width:min(260px,calc(100vw - 16px));padding:0;overflow:hidden;border:1px solid color-mix(in srgb,var(--color-primary) 24%,var(--color-border));border-radius:10px;background:color-mix(in srgb,var(--color-surface-glass) 96%,var(--color-bg));color:var(--color-text);box-shadow:var(--shadow-md),0 0 24px color-mix(in srgb,var(--color-primary) 10%,transparent);white-space:normal;text-align:left;font-size:11px;line-height:1.35;pointer-events:none;backdrop-filter:blur(18px);}
     .profile-activity-tooltip[hidden]{display:none;}
+    .profile-activity-tooltip-header{padding:8px 10px;border-bottom:1px solid color-mix(in srgb,var(--color-primary) 20%,var(--color-border));background:color-mix(in srgb,var(--color-primary) 12%,transparent);color:var(--color-primary);font-weight:800;letter-spacing:.01em;}
+    .profile-activity-tooltip-body{padding:6px 10px 8px;}
+    .profile-activity-tooltip-row{--profile-tooltip-tone:var(--color-primary);display:grid;grid-template-columns:6px minmax(0,1fr) auto;align-items:center;gap:7px;padding:3px 0;}
+    .profile-activity-tooltip-row[data-tone="secondary"]{--profile-tooltip-tone:var(--color-secondary);}
+    .profile-activity-tooltip-row[data-tone="cost"]{--profile-tooltip-tone:var(--color-cost);}
+    .profile-activity-tooltip-row[data-tone="cta"]{--profile-tooltip-tone:var(--color-cta);}
+    .profile-activity-tooltip-row[data-tone="reasoning"]{--profile-tooltip-tone:color-mix(in srgb,var(--color-primary) 55%,var(--color-secondary));}
+    .profile-activity-tooltip-row[data-prominent="true"]{margin:1px 0 4px;padding:6px;border:1px solid color-mix(in srgb,var(--profile-tooltip-tone) 18%,transparent);border-radius:7px;background:color-mix(in srgb,var(--profile-tooltip-tone) 8%,transparent);}
+    .profile-activity-tooltip-row[data-key="estimatedCost"]{margin-top:4px;padding-top:7px;border-top:1px solid var(--color-border);}
+    .profile-activity-tooltip-dot{width:6px;height:6px;border-radius:50%;background:var(--profile-tooltip-tone);box-shadow:0 0 7px color-mix(in srgb,var(--profile-tooltip-tone) 42%,transparent);}
+    .profile-activity-tooltip-label{min-width:0;color:var(--color-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .profile-activity-tooltip-value{color:var(--profile-tooltip-tone);font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:750;text-align:right;white-space:nowrap;}
+    .profile-activity-tooltip-row[data-prominent="true"] .profile-activity-tooltip-value{font-size:13px;font-weight:850;}
     .profile-activity-months{display:flex;justify-content:space-between;min-width:572px;margin-top:8px;color:var(--color-muted);font-size:12px;}
-    @media(max-width:640px){.profile-activity-head{gap:10px;font-size:13px;}.profile-activity-shell{max-width:100%;}}
+    @media(max-width:640px){.profile-activity-head{gap:6px;flex-wrap:wrap;font-size:13px;}.profile-activity-head h3{flex:1 0 100%;margin-bottom:2px;}.profile-activity-mode{padding:5px 8px;}.profile-activity-shell{max-width:100%;}}
 
     .pricing-editor {
       width: 100%;
@@ -850,6 +871,7 @@
     /* Reduce motion */
     @media (prefers-reduced-motion: reduce) {
       * { transition: none !important; scroll-behavior: auto !important; }
+      .profile-activity-cell{transform:none!important;}
     }
   </style>
   <script>document.write(`<link rel="stylesheet" href="${window.tokdashPath('/static/themes.css')}" />`);</script>
@@ -1525,11 +1547,11 @@
           <div class="profile-activity-shell">
             <div class="profile-activity-summary-scroll">
               <dl class="profile-activity-summary">
-                <div class="profile-activity-stat"><dd id="profileStatRecordedTokens">—</dd><dt data-i18n="recordedTokens">Recorded tokens</dt></div>
-                <div class="profile-activity-stat"><dd id="profileStatPeakDay">—</dd><dt data-i18n="profilePeakTokens">Peak tokens</dt></div>
-                <div class="profile-activity-stat"><dd id="profileStatActiveDays">—</dd><dt data-i18n="activeDays">Active Days</dt></div>
-                <div class="profile-activity-stat"><dd id="profileStatCurrentStreak">—</dd><dt data-i18n="streak">Streak</dt></div>
-                <div class="profile-activity-stat"><dd id="profileStatLongestStreak">—</dd><dt data-i18n="longestStreak">Longest Streak</dt></div>
+                <div class="profile-activity-stat" data-tone="primary"><dd id="profileStatRecordedTokens">—</dd><dt data-i18n="recordedTokens">Recorded tokens</dt></div>
+                <div class="profile-activity-stat" data-tone="secondary"><dd id="profileStatPeakDay">—</dd><dt data-i18n="profilePeakTokens">Peak tokens</dt></div>
+                <div class="profile-activity-stat" data-tone="cost"><dd id="profileStatActiveDays">—</dd><dt data-i18n="activeDays">Active Days</dt></div>
+                <div class="profile-activity-stat" data-tone="cta"><dd id="profileStatCurrentStreak">—</dd><dt data-i18n="streak">Streak</dt></div>
+                <div class="profile-activity-stat" data-tone="primary"><dd id="profileStatLongestStreak">—</dd><dt data-i18n="longestStreak">Longest Streak</dt></div>
               </dl>
             </div>
             <div class="profile-activity-head">
@@ -6105,10 +6127,39 @@
       });
     }
 
+    function renderProfileActivityTooltipContent(tooltip, model) {
+      const header = document.createElement('div');
+      header.className = 'profile-activity-tooltip-header';
+      header.textContent = model.title;
+
+      const body = document.createElement('div');
+      body.className = 'profile-activity-tooltip-body';
+      model.rows.forEach((row) => {
+        const item = document.createElement('div');
+        item.className = 'profile-activity-tooltip-row';
+        item.dataset.key = row.key;
+        item.dataset.tone = row.tone;
+        if (row.prominent) item.dataset.prominent = 'true';
+
+        const dot = document.createElement('span');
+        dot.className = 'profile-activity-tooltip-dot';
+        dot.setAttribute('aria-hidden', 'true');
+        const label = document.createElement('span');
+        label.className = 'profile-activity-tooltip-label';
+        label.textContent = row.label;
+        const value = document.createElement('span');
+        value.className = 'profile-activity-tooltip-value';
+        value.textContent = row.value;
+        item.append(dot, label, value);
+        body.appendChild(item);
+      });
+      tooltip.replaceChildren(header, body);
+    }
+
     function showProfileActivityTooltip(target, model) {
       const tooltip = document.getElementById('profileActivityTooltip');
       if (!tooltip || !target || !model?.title) return;
-      tooltip.textContent = model.accessibleText;
+      renderProfileActivityTooltipContent(tooltip, model);
       tooltip.hidden = false;
       target.setAttribute('aria-describedby', tooltip.id);
       const rect = target.getBoundingClientRect();
