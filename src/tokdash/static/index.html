@@ -2236,6 +2236,7 @@
         close: 'Close',
         tokenBreakdown: 'Token Breakdown',
         cacheRead: 'Cache Read',
+        cacheWrite: 'Cache write',
         reasoning: 'Reasoning',
         modelsUsed: 'Models Used',
         source: 'Source',
@@ -2482,6 +2483,7 @@
         close: '关闭',
         tokenBreakdown: 'Token 明细',
         cacheRead: '缓存读取',
+        cacheWrite: '缓存写入',
         reasoning: '推理',
         modelsUsed: '使用的模型',
         source: '来源',
@@ -3081,7 +3083,8 @@
       if (document.getElementById('stats-content').classList.contains('active')) {
         loadStats({ preserveNavigation: true });
       } else if (calendarState.contributions?.length) {
-        if (calendarState.view === 'month') renderMonthHeatmap();
+        if (calendarState.view === 'profile') renderProfileView();
+        else if (calendarState.view === 'month') renderMonthHeatmap();
         else if (calendarState.view === 'year') {
           renderYearHeatmap();
           updateTopStatsForYear();
@@ -5837,7 +5840,7 @@
         return; // setView() restores the active view container
       }
       banner.style.display = 'block';
-      ['calendarMonthView', 'calendarYearView', 'calendar3DView'].forEach((id) => {
+      ['calendarProfileView', 'calendarMonthView', 'calendarYearView', 'calendar3DView'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -6031,6 +6034,187 @@
         }));
       });
       return { cells, series };
+    }
+
+    let profileActivityMode = 'daily';
+    let profileActivityDidInitialScroll = false;
+
+    function getProfileActivityColor(level) {
+      const safeLevel = Math.max(0, Math.min(4, Number(level) || 0));
+      const index = Math.round((safeLevel / 4) * Math.max(0, HEAT_COLORS.length - 1));
+      return HEAT_COLORS[index] || 'var(--color-border)';
+    }
+
+    function formatProfileMetricNumber(value) {
+      return new Intl.NumberFormat(currentLang === 'zh' ? 'zh-CN' : 'en-US', {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      }).format(safeProfileNumber(value));
+    }
+
+    function formatProfileAggregateTooltip(aggregate, cumulative = false) {
+      const range = aggregate?.startDate && aggregate?.endDate
+        ? `${formatShortDate(aggregate.startDate, true)} → ${formatShortDate(aggregate.endDate, true)}`
+        : '—';
+      const singleDate = aggregate?.startDate === aggregate?.endDate;
+      const heading = cumulative
+        ? `${t('cumulative')} · ${range}`
+        : (singleDate ? formatShortDate(aggregate.startDate, true) : range);
+      const breakdown = aggregate?.tokenBreakdown || {};
+      return [
+        heading,
+        `${t('total')}: ${formatNumber(aggregate?.totals?.tokens || 0)} ${t('tokensUnit')}`,
+        `${t('input')}: ${formatNumber(breakdown.input || 0)}`,
+        `${t('output')}: ${formatNumber(breakdown.output || 0)}`,
+        `${t('cacheRead')}: ${formatNumber(breakdown.cacheRead || 0)}`,
+        `${t('cacheWrite')}: ${formatNumber(breakdown.cacheWrite || 0)}`,
+        breakdown.reasoning ? `${t('reasoning')}: ${formatNumber(breakdown.reasoning)}` : null,
+        `${t('estimatedCost')}: ${formatCurrency(aggregate?.totals?.cost || 0)}`,
+      ].filter(Boolean).join('\n');
+    }
+
+    function formatProfileDayTooltip(day) {
+      return formatProfileAggregateTooltip({
+        startDate: day.date,
+        endDate: day.date,
+        totals: day.totals || {},
+        tokenBreakdown: day.tokenBreakdown || {},
+      });
+    }
+
+    function showProfileActivityTooltip(target, content) {
+      const tooltip = document.getElementById('profileActivityTooltip');
+      if (!tooltip || !target || !content) return;
+      tooltip.textContent = content;
+      tooltip.hidden = false;
+      target.setAttribute('aria-describedby', tooltip.id);
+      const rect = target.getBoundingClientRect();
+      const gap = 8;
+      const left = Math.max(gap, Math.min(
+        window.innerWidth - tooltip.offsetWidth - gap,
+        rect.left + (rect.width - tooltip.offsetWidth) / 2,
+      ));
+      let top = rect.top - tooltip.offsetHeight - gap;
+      if (top < gap) top = Math.min(window.innerHeight - tooltip.offsetHeight - gap, rect.bottom + gap);
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${Math.max(gap, top)}px`;
+    }
+
+    function hideProfileActivityTooltip(target) {
+      const tooltip = document.getElementById('profileActivityTooltip');
+      if (tooltip) tooltip.hidden = true;
+      if (target) target.removeAttribute('aria-describedby');
+    }
+
+    function bindProfileActivityTooltip(target, content) {
+      target.setAttribute('aria-label', content.replaceAll('\n', ', '));
+      target.addEventListener('mouseenter', () => showProfileActivityTooltip(target, content));
+      target.addEventListener('mouseleave', () => hideProfileActivityTooltip(target));
+      target.addEventListener('focus', () => showProfileActivityTooltip(target, content));
+      target.addEventListener('blur', () => hideProfileActivityTooltip(target));
+    }
+
+    function renderProfileSummary(summary) {
+      document.getElementById('profileStatRecordedTokens').textContent = formatProfileMetricNumber(summary.recordedTokens || 0);
+      const peakValue = summary.peakDay ? profileDayTokens(summary.peakDay) : 0;
+      const peak = document.getElementById('profileStatPeakDay');
+      peak.textContent = formatProfileMetricNumber(peakValue);
+      peak.title = summary.peakDay ? formatShortDate(summary.peakDay.date, true) : '';
+      document.getElementById('profileStatActiveDays').textContent = formatNumber(summary.activeDays || 0);
+      document.getElementById('profileStatCurrentStreak').textContent = pluralDays(summary.currentStreak || 0);
+      document.getElementById('profileStatLongestStreak').textContent = pluralDays(summary.longestStreak || 0);
+    }
+
+    function renderProfileMonths(today = new Date()) {
+      const labels = [];
+      for (let offset = 11; offset >= 0; offset -= 1) {
+        labels.push(new Date(today.getFullYear(), today.getMonth() - offset, 1)
+          .toLocaleString(currentLang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short' }));
+      }
+      document.getElementById('profileActivityMonths').replaceChildren(
+        ...labels.map((label) => Object.assign(document.createElement('span'), { textContent: label }))
+      );
+    }
+
+    function setProfileColumnHover(weekIndex, active) {
+      document.querySelectorAll(`#profileActivityGrid [data-week-index="${weekIndex}"]`).forEach((cell) => {
+        cell.classList.toggle('is-column-hover', active);
+      });
+    }
+
+    function ensureProfileActivityInitialScroll() {
+      if (profileActivityDidInitialScroll) return;
+      const scroller = document.getElementById('profileActivityScroller');
+      if (scroller && scroller.scrollWidth > scroller.clientWidth) {
+        scroller.scrollLeft = scroller.scrollWidth;
+        profileActivityDidInitialScroll = true;
+      }
+    }
+
+    function renderProfileView() {
+      const today = new Date();
+      const days = getProfileActivityWindow(statsCache.default || calendarState.contributions || [], today);
+      const weeks = groupProfileActivityWeeks(days);
+      const { cells, series } = buildProfileActivityCells(profileActivityMode, days, weeks);
+      const grid = document.getElementById('profileActivityGrid');
+      const hits = document.getElementById('profileActivityWeekHits');
+      hideProfileActivityTooltip();
+      grid.replaceChildren();
+      hits.replaceChildren();
+      grid.style.setProperty('--profile-activity-empty', getProfileActivityColor(0));
+      grid.style.setProperty('--profile-activity-strong', getProfileActivityColor(4));
+      renderProfileSummary(summarizeProfileActivity(days));
+      renderProfileMonths(today);
+
+      cells.forEach((definition) => {
+        const cell = document.createElement(profileActivityMode === 'daily' ? 'button' : 'span');
+        cell.className = 'profile-activity-cell';
+        cell.setAttribute('role', 'gridcell');
+        if (profileActivityMode === 'daily') {
+          cell.type = 'button';
+          cell.style.background = getProfileActivityColor(definition.level);
+          if (definition.day.isFuture) {
+            cell.disabled = true;
+            cell.setAttribute('aria-hidden', 'true');
+          } else {
+            const tooltip = formatProfileDayTooltip(definition.day);
+            bindProfileActivityTooltip(cell, tooltip);
+          }
+        } else {
+          cell.dataset.weekIndex = String(definition.weekIndex);
+          cell.classList.toggle('is-aggregate', definition.active);
+        }
+        grid.appendChild(cell);
+      });
+
+      hits.hidden = profileActivityMode === 'daily';
+      if (profileActivityMode !== 'daily') {
+        series.forEach((aggregate, weekIndex) => {
+          const hit = document.createElement('button');
+          const tooltip = formatProfileAggregateTooltip(aggregate, profileActivityMode === 'cumulative');
+          hit.type = 'button';
+          hit.className = 'profile-activity-week-hit';
+          bindProfileActivityTooltip(hit, tooltip);
+          hit.addEventListener('mouseenter', () => setProfileColumnHover(weekIndex, true));
+          hit.addEventListener('mouseleave', () => setProfileColumnHover(weekIndex, false));
+          hit.addEventListener('focus', () => setProfileColumnHover(weekIndex, true));
+          hit.addEventListener('blur', () => setProfileColumnHover(weekIndex, false));
+          hits.appendChild(hit);
+        });
+      }
+
+      ['daily', 'weekly', 'cumulative'].forEach((mode) => {
+        const id = `profileMode${mode[0].toUpperCase()}${mode.slice(1)}`;
+        document.getElementById(id).setAttribute('aria-pressed', String(profileActivityMode === mode));
+      });
+
+      requestAnimationFrame(ensureProfileActivityInitialScroll);
+    }
+
+    function setProfileActivityMode(mode) {
+      if (!['daily', 'weekly', 'cumulative'].includes(mode)) return;
+      profileActivityMode = mode;
+      if (calendarState.view === 'profile' && statsLoaded) renderProfileView();
     }
 
     async function loadStats(options = {}) {
@@ -6282,11 +6466,21 @@
     }
 
     function setView(view) {
+      if (!['profile', 'month', 'year', '3d'].includes(view)) return;
       calendarState.view = view;
 
+      document.getElementById('viewProfile').className = view === 'profile' ? 'btn btn-primary' : 'btn btn-ghost';
       document.getElementById('viewMonth').className = view === 'month' ? 'btn btn-primary' : 'btn btn-ghost';
       document.getElementById('viewYear').className = view === 'year' ? 'btn btn-primary' : 'btn btn-ghost';
       document.getElementById('view3D').className = view === '3d' ? 'btn btn-primary' : 'btn btn-ghost';
+      const statsViewTitle = document.getElementById('statsViewTitle');
+      statsViewTitle.dataset.i18n = view === 'profile' ? 'profileView' : 'dailyActivity';
+      statsViewTitle.textContent = t(statsViewTitle.dataset.i18n);
+      if (view !== 'profile') hideProfileActivityTooltip();
+      document.getElementById('statsMetricControls').style.display = view === 'profile' ? 'none' : '';
+      document.getElementById('statsSummaryCards').style.display = view === 'profile' ? 'none' : '';
+      document.getElementById('statsInsightCards').style.display = view === 'profile' ? 'none' : '';
+      document.getElementById('dayDetails').style.display = view === 'profile' ? 'none' : '';
       updateMetricControls();
 
       // Before the first successful stats load, keep the loading/error banner up
@@ -6295,11 +6489,14 @@
       // user toggled Month/Year while /api/stats was still loading or had failed.
       if (!statsLoaded) return;
 
+      document.getElementById('calendarProfileView').style.display = view === 'profile' ? 'block' : 'none';
       document.getElementById('calendarMonthView').style.display = view === 'month' ? 'block' : 'none';
       document.getElementById('calendarYearView').style.display = view === 'year' ? 'block' : 'none';
       document.getElementById('calendar3DView').style.display = view === '3d' ? 'block' : 'none';
 
-      if (view === 'month') {
+      if (view === 'profile') {
+        renderProfileView();
+      } else if (view === 'month') {
         renderMonthHeatmap();
       } else if (view === 'year') {
         const year = calendarState.yearCursor.getFullYear();
@@ -7259,6 +7456,11 @@
     document.getElementById('viewMonth').addEventListener('click', () => setView('month'));
     document.getElementById('viewYear').addEventListener('click', () => setView('year'));
     document.getElementById('view3D').addEventListener('click', () => setView('3d'));
+    document.getElementById('viewProfile').addEventListener('click', () => setView('profile'));
+    document.getElementById('profileModeDaily').addEventListener('click', () => setProfileActivityMode('daily'));
+    document.getElementById('profileModeWeekly').addEventListener('click', () => setProfileActivityMode('weekly'));
+    document.getElementById('profileModeCumulative').addEventListener('click', () => setProfileActivityMode('cumulative'));
+    window.addEventListener('resize', ensureProfileActivityInitialScroll, { passive: true });
     document.getElementById('statsRetryBtn')?.addEventListener('click', () => loadStats());
     document.getElementById('metricTokensBtn').addEventListener('click', () => setCalendarMetric('tokens'));
     document.getElementById('metricEnergyBtn').addEventListener('click', () => setCalendarMetric('energy'));

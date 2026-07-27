@@ -259,3 +259,26 @@ def test_profile_view_html_and_localization_contract():
     assert source.count("tokenActivity: '") == 2
     assert ".profile-activity-cell" in source
     assert "border-radius:2px" in source.replace(" ", "")
+    assert "function renderProfileView() {" in source
+    assert "function setProfileActivityMode(mode) {" in source
+    assert "function showProfileActivityTooltip(target, content) {" in source
+    assert "setView('profile')" in source
+    assert "renderProfileView();" in source
+    assert "'calendarProfileView'" in source
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
+def test_main_inline_script_parses_with_node(tmp_path: Path):
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    inline_scripts = re.findall(
+        r"<script(?:\s[^>]*)?>(.*?)</script>", source, flags=re.DOTALL
+    )
+    main_script = max(inline_scripts, key=len)
+    harness = tmp_path / "tokdash-main.js"
+    harness.write_text(main_script, encoding="utf-8")
+    subprocess.run(
+        ["node", "--check", str(harness)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
