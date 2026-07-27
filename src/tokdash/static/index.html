@@ -5806,6 +5806,161 @@
       return fillDateRange(new Date(year, 0, 1), new Date(year, 11, 31), new Map(list.map((d) => [d.date, d])));
     }
 
+    function safeProfileNumber(value) {
+      const number = Number(value ?? 0);
+      return Number.isFinite(number) ? Math.max(0, number) : 0;
+    }
+
+    function getProfileActivityWindow(contributions, today, weekCount = 52) {
+      const safeToday = today instanceof Date && !isNaN(today.getTime()) ? today : new Date();
+      const todayKey = formatDateKey(safeToday);
+      const firstMonday = startOfWeekMonday(safeToday);
+      firstMonday.setDate(firstMonday.getDate() - (Math.max(1, weekCount) - 1) * 7);
+      const contributionMap = new Map(
+        (Array.isArray(contributions) ? contributions : []).map((day) => [day.date, day])
+      );
+
+      return Array.from({ length: Math.max(1, weekCount) * 7 }, (_, index) => {
+        const date = new Date(firstMonday.getFullYear(), firstMonday.getMonth(), firstMonday.getDate());
+        date.setDate(date.getDate() + index);
+        const key = formatDateKey(date);
+        const empty = createEmptyContribution(key);
+        const source = contributionMap.get(key) || empty;
+        return {
+          ...empty,
+          ...source,
+          totals: { ...empty.totals, ...(source.totals || {}) },
+          tokenBreakdown: {
+            ...empty.tokenBreakdown,
+            ...(source.tokenBreakdown || {}),
+          },
+          sources: Array.isArray(source.sources) ? source.sources : [],
+          isFuture: key > todayKey,
+        };
+      });
+    }
+
+    function profileDayTokens(day) {
+      return day?.isFuture ? 0 : safeProfileNumber(day?.totals?.tokens);
+    }
+
+    function summarizeProfileActivity(days) {
+      const visible = (Array.isArray(days) ? days : []).filter((day) => !day?.isFuture);
+      const active = visible.map((day) => profileDayTokens(day) > 0);
+      const peakDay = visible.reduce((best, day) => {
+        if (profileDayTokens(day) <= 0) return best;
+        return !best || profileDayTokens(day) > profileDayTokens(best) ? day : best;
+      }, null);
+      let currentStreak = 0;
+      for (let index = active.length - 1; index >= 0 && active[index]; index -= 1) currentStreak += 1;
+      let longestStreak = 0;
+      let runningStreak = 0;
+      active.forEach((isActive) => {
+        runningStreak = isActive ? runningStreak + 1 : 0;
+        longestStreak = Math.max(longestStreak, runningStreak);
+      });
+      return {
+        recordedTokens: visible.reduce((sum, day) => sum + profileDayTokens(day), 0),
+        peakDay,
+        activeDays: active.filter(Boolean).length,
+        currentStreak,
+        longestStreak,
+      };
+    }
+
+    function groupProfileActivityWeeks(days) {
+      const breakdownKeys = ['input', 'output', 'cacheRead', 'cacheWrite', 'reasoning'];
+      const list = Array.isArray(days) ? days : [];
+      return Array.from({ length: Math.ceil(list.length / 7) }, (_, weekIndex) => {
+        const weekDays = list.slice(weekIndex * 7, weekIndex * 7 + 7);
+        const visibleDays = weekDays.filter((day) => !day?.isFuture);
+        const tokenBreakdown = Object.fromEntries(breakdownKeys.map((key) => [key, 0]));
+        const totals = { tokens: 0, cost: 0, messages: 0 };
+        visibleDays.forEach((day) => {
+          totals.tokens += safeProfileNumber(day?.totals?.tokens);
+          totals.cost += safeProfileNumber(day?.totals?.cost);
+          totals.messages += safeProfileNumber(day?.totals?.messages);
+          breakdownKeys.forEach((key) => {
+            tokenBreakdown[key] += safeProfileNumber(day?.tokenBreakdown?.[key]);
+          });
+        });
+        return {
+          weekIndex,
+          startDate: weekDays[0]?.date || null,
+          endDate: weekDays[6]?.date || weekDays.at(-1)?.date || null,
+          totals,
+          tokenBreakdown,
+          sources: visibleDays.flatMap((day) => day.sources || []),
+          isFuture: visibleDays.length === 0,
+        };
+      });
+    }
+
+    function buildProfileActivitySeries(mode, weeks) {
+      if (mode !== 'cumulative') return weeks.map((week) => ({ ...week }));
+      const breakdownKeys = ['input', 'output', 'cacheRead', 'cacheWrite', 'reasoning'];
+      const runningTotals = { tokens: 0, cost: 0, messages: 0 };
+      const runningBreakdown = Object.fromEntries(breakdownKeys.map((key) => [key, 0]));
+      return weeks.map((week) => {
+        Object.keys(runningTotals).forEach((key) => {
+          runningTotals[key] += safeProfileNumber(week?.totals?.[key]);
+        });
+        breakdownKeys.forEach((key) => {
+          runningBreakdown[key] += safeProfileNumber(week?.tokenBreakdown?.[key]);
+        });
+        return {
+          ...week,
+          startDate: weeks[0]?.startDate || week.startDate,
+          totals: { ...runningTotals },
+          tokenBreakdown: { ...runningBreakdown },
+        };
+      });
+    }
+
+    function getProfileDailyLevel(value, peak) {
+      const safeValue = safeProfileNumber(value);
+      const safePeak = safeProfileNumber(peak);
+      if (safeValue <= 0 || safePeak <= 0) return 0;
+      const ratio = safeValue / safePeak;
+      if (ratio > 0.75) return 4;
+      if (ratio > 0.5) return 3;
+      if (ratio > 0.25) return 2;
+      return 1;
+    }
+
+    function getProfileAggregateHeight(value, peak) {
+      const safeValue = safeProfileNumber(value);
+      const safePeak = safeProfileNumber(peak);
+      return safeValue <= 0 || safePeak <= 0 ? 0 : Math.max(1, Math.ceil((safeValue / safePeak) * 7));
+    }
+
+    function buildProfileActivityCells(mode, days, weeks) {
+      if (mode === 'daily') {
+        const peak = Math.max(0, ...(days || []).map(profileDayTokens));
+        return {
+          series: [],
+          cells: (days || []).map((day, index) => ({
+            index,
+            day,
+            level: getProfileDailyLevel(profileDayTokens(day), peak),
+            active: profileDayTokens(day) > 0,
+          })),
+        };
+      }
+      const series = buildProfileActivitySeries(mode, weeks || []);
+      const peak = Math.max(0, ...series.map((week) => safeProfileNumber(week?.totals?.tokens)));
+      const cells = series.flatMap((week, weekIndex) => {
+        const height = getProfileAggregateHeight(week?.totals?.tokens, peak);
+        return Array.from({ length: 7 }, (_, row) => ({
+          weekIndex,
+          row,
+          active: 7 - row <= height,
+          value: safeProfileNumber(week?.totals?.tokens),
+        }));
+      });
+      return { cells, series };
+    }
+
     async function loadStats(options = {}) {
       const preserveNavigation = !!options.preserveNavigation;
       const seq = ++statsLoadSeq;
