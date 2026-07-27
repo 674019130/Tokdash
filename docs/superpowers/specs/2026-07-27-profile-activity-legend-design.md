@@ -8,7 +8,8 @@ Add a compact, always-visible legend to the Profile activity heatmap on both the
 
 Use the selected bottom compact legend (visual option A).
 
-- Place the legend directly below the month labels and align it to the right edge of the 52-week grid.
+- In the complete Profile view, place the legend directly below the existing month labels and align it to the right edge of the 52-week grid.
+- In Overview, which intentionally has no month-label row, place the legend directly below the grid without adding month labels.
 - Keep the Overview version on one compact line with the lowest practical visual weight.
 - Use the same content and behavior in the complete Profile view with slightly more breathing room.
 - Keep the legend inside the existing horizontally scrollable activity area so narrow layouts do not increase page width.
