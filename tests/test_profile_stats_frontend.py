@@ -437,6 +437,47 @@ def test_profile_visual_polish_contract():
     assert "content.replaceAll" not in binder
 
 
+def test_overview_profile_summary_markup_and_style_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", "", source)
+    required_ids = [
+        "overviewProfileSummary",
+        "overviewProfileTitle",
+        "overviewProfileOpen",
+        "overviewProfileLoading",
+        "overviewProfileUnavailable",
+        "overviewProfileReady",
+        "overviewProfileActiveDays",
+        "overviewProfileCurrentStreak",
+        "overviewProfileLongestStreak",
+        "overviewProfileScroller",
+        "overviewProfileGrid",
+        "overviewProfileTooltip",
+    ]
+    for element_id in required_ids:
+        assert f'id="{element_id}"' in source
+
+    assert source.index('id="modelChart"') < source.index('id="overviewProfileSummary"')
+    assert source.index('id="overviewProfileSummary"') < source.index('id="toolsTable"')
+    for key in [
+        "overviewProfileEyebrow",
+        "overviewProfileTitle",
+        "overviewProfileRange",
+        "viewFullProfile",
+        "overviewProfileUnavailable",
+    ]:
+        assert source.count(f"{key}: '") == 2
+
+    assert ".overview-profile-band{" in compact
+    assert "grid-template-columns:minmax(180px,220px)minmax(0,1fr)" in compact
+    assert ".overview-profile-grid{" in compact
+    assert "grid-template-columns:repeat(52,minmax(8px,1fr))" in compact
+    assert "gap:3px" in compact
+    assert ".overview-profile-cell{border-radius:2px" in compact
+    assert "@media(max-width:800px)" in compact
+    assert ".overview-profile-cell{transform:none!important;}" in compact
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not available")
 def test_main_inline_script_parses_with_node(tmp_path: Path):
     source = INDEX_HTML.read_text(encoding="utf-8")
