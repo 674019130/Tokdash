@@ -510,6 +510,17 @@
     .overview-profile-cell[data-milestone="3"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--profile-milestone-tone) 76%,transparent),0 0 0 2px color-mix(in srgb,var(--profile-milestone-tone) 18%,transparent),0 0 7px color-mix(in srgb,var(--profile-milestone-tone) 30%,transparent);}
     .overview-profile-cell[data-milestone="4"]{box-shadow:0 0 0 1px color-mix(in srgb,var(--color-text) 68%,transparent),0 0 0 2px color-mix(in srgb,var(--profile-milestone-tone) 30%,transparent),0 0 9px color-mix(in srgb,var(--profile-milestone-tone) 42%,transparent);}
     .profile-activity-months{display:flex;justify-content:space-between;min-width:572px;margin-top:8px;color:var(--color-muted);font-size:12px;}
+    .profile-activity-legend{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:572px;margin-top:10px;color:var(--color-muted);font-size:10px;line-height:1;white-space:nowrap;}
+    .profile-activity-legend-scale,.profile-activity-legend-milestones{display:flex;align-items:center;gap:5px;}
+    .profile-activity-legend-glyph{display:flex;align-items:center;gap:3px;height:12px;}
+    .profile-activity-legend-swatches{align-items:center;}
+    .profile-activity-legend-swatch{width:10px;height:10px;border-radius:2px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--color-text) 7%,transparent);}
+    .profile-activity-legend-bars{align-items:flex-end;}
+    .profile-activity-legend-bar{width:6px;border-radius:2px 2px 1px 1px;background:var(--color-primary);opacity:.82;}
+    .profile-activity-legend-bar:nth-child(1){height:3px;}.profile-activity-legend-bar:nth-child(2){height:5px;}.profile-activity-legend-bar:nth-child(3){height:7px;}.profile-activity-legend-bar:nth-child(4){height:9px;}.profile-activity-legend-bar:nth-child(5){height:12px;}
+    .profile-activity-legend-divider{width:1px;height:12px;background:var(--color-border);}
+    .profile-activity-legend-badge{padding:3px 5px;border:1px solid color-mix(in srgb,var(--profile-milestone-tone) 54%,transparent);border-radius:999px;background:color-mix(in srgb,var(--profile-milestone-tone) 7%,transparent);color:var(--profile-milestone-tone);font-size:8px;font-weight:850;letter-spacing:.02em;}
+    .profile-activity-legend-badge[data-milestone="1"]{--profile-milestone-tone:var(--profile-milestone-1);}.profile-activity-legend-badge[data-milestone="2"]{--profile-milestone-tone:var(--profile-milestone-2);}.profile-activity-legend-badge[data-milestone="3"]{--profile-milestone-tone:var(--profile-milestone-3);}.profile-activity-legend-badge[data-milestone="4"]{--profile-milestone-tone:var(--profile-milestone-4);}
     @media(max-width:640px){.profile-activity-head{gap:6px;flex-wrap:wrap;font-size:13px;}.profile-activity-head h3{flex:1 0 100%;margin-bottom:2px;}.profile-activity-mode{padding:5px 8px;}.profile-activity-shell{max-width:100%;}}
 
     .overview-profile-band{display:grid;grid-template-columns:minmax(180px,220px) minmax(0,1fr);gap:20px;align-items:stretch;min-height:128px;padding:16px 18px;border-color:color-mix(in srgb,var(--color-primary) 18%,var(--color-border));background:linear-gradient(105deg,var(--color-surface-glass),color-mix(in srgb,var(--color-primary) 7%,var(--color-surface-glass)));box-shadow:0 10px 28px color-mix(in srgb,var(--color-primary) 6%,transparent);}
@@ -1660,6 +1671,7 @@
                 <div id="profileActivityWeekHits" class="profile-activity-week-hits" hidden></div>
               </div>
               <div id="profileActivityMonths" class="profile-activity-months" aria-hidden="true"></div>
+              <div id="profileActivityLegend" class="profile-activity-legend"></div>
             </div>
             <div id="profileActivityTooltip" class="profile-activity-tooltip" role="tooltip" hidden></div>
           </div>
@@ -2351,6 +2363,7 @@
         threeD: '3D',
         less: 'Less',
         more: 'More',
+        activityLegend: 'Token activity legend',
         monthStats: 'Month Stats',
         monthlyTotals: 'Monthly Totals',
         messages: 'Messages',
@@ -2604,6 +2617,7 @@
         threeD: '3D',
         less: '少',
         more: '多',
+        activityLegend: 'Token 活跃度图例',
         monthStats: '月度统计',
         monthlyTotals: '每月汇总',
         messages: '消息数',
@@ -6232,6 +6246,60 @@
       return HEAT_COLORS[index] || 'var(--color-border)';
     }
 
+    function renderProfileActivityLegend(targetId, mode) {
+      const legend = document.getElementById(targetId);
+      if (!legend) return;
+      const safeMode = ['daily', 'weekly', 'cumulative'].includes(mode) ? mode : 'daily';
+      legend.dataset.mode = safeMode;
+      legend.setAttribute('aria-label', t('activityLegend'));
+      mode = safeMode;
+
+      const scale = document.createElement('div');
+      scale.className = 'profile-activity-legend-scale';
+      const less = document.createElement('span');
+      less.dataset.i18n = 'less';
+      less.textContent = t('less');
+      const glyph = document.createElement('span');
+      glyph.className = mode === 'daily'
+        ? 'profile-activity-legend-glyph profile-activity-legend-swatches'
+        : 'profile-activity-legend-glyph profile-activity-legend-bars';
+      glyph.setAttribute('aria-hidden', 'true');
+      for (let level = 0; level < 5; level += 1) {
+        const item = document.createElement('span');
+        if (mode === 'daily') {
+          item.className = 'profile-activity-legend-swatch';
+          item.style.background = getProfileActivityColor(level);
+        } else {
+          item.className = 'profile-activity-legend-bar';
+        }
+        glyph.appendChild(item);
+      }
+      const more = document.createElement('span');
+      more.dataset.i18n = 'more';
+      more.textContent = t('more');
+      scale.append(less, glyph, more);
+
+      const divider = document.createElement('span');
+      divider.className = 'profile-activity-legend-divider';
+      divider.setAttribute('aria-hidden', 'true');
+      const milestones = document.createElement('div');
+      milestones.className = 'profile-activity-legend-milestones';
+      [
+        { level: 1, label: '100M' },
+        { level: 2, label: '300M' },
+        { level: 3, label: '500M' },
+        { level: 4, label: '1B' },
+      ].forEach(({ level, label }) => {
+        const badge = document.createElement('span');
+        badge.className = 'profile-activity-legend-badge';
+        badge.dataset.milestone = String(level);
+        badge.textContent = label;
+        milestones.appendChild(badge);
+      });
+
+      legend.replaceChildren(scale, divider, milestones);
+    }
+
     function formatProfileMetricNumber(value) {
       return new Intl.NumberFormat(currentLang === 'zh' ? 'zh-CN' : 'en-US', {
         notation: 'compact',
@@ -6433,6 +6501,7 @@
       grid.style.setProperty('--profile-activity-strong', getProfileActivityColor(4));
       renderProfileSummary(summarizeProfileActivity(days));
       renderProfileMonths(today);
+      renderProfileActivityLegend('profileActivityLegend', profileActivityMode);
 
       cells.forEach((definition) => {
         const cell = document.createElement(profileActivityMode === 'daily' ? 'button' : 'span');

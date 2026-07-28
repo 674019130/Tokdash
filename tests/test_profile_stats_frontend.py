@@ -555,6 +555,7 @@ def test_profile_view_html_and_localization_contract():
         "profileActivityGrid",
         "profileActivityWeekHits",
         "profileActivityMonths",
+        "profileActivityLegend",
         "profileActivityScroller",
         "profileActivityTooltip",
         "profileModeDaily",
@@ -611,6 +612,40 @@ def test_profile_visual_polish_contract():
     )
     assert "dataset.profileTooltipId" in resolver
     assert "profileActivityTooltip" in resolver
+
+
+def test_profile_activity_legend_is_safe_localized_and_mode_aware():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", "", source)
+
+    assert 'id="profileActivityLegend"' in source
+    assert source.count("activityLegend: '") == 2
+    assert ".profile-activity-legend{" in compact
+    assert ".profile-activity-legend-swatches{" in compact
+    assert ".profile-activity-legend-bars{" in compact
+    assert ".profile-activity-legend-badge{" in compact
+
+    renderer = _extract_js_function(
+        source,
+        "function renderProfileActivityLegend(targetId, mode) {",
+    )
+    assert "document.createElement(" in renderer
+    assert "legend.replaceChildren(scale, divider, milestones);" in renderer
+    assert "mode === 'daily'" in renderer
+    assert "getProfileActivityColor(level)" in renderer
+    assert "profile-activity-legend-bars" in renderer
+    assert "profile-activity-legend-badge" in renderer
+    assert "glyph.setAttribute('aria-hidden', 'true');" in renderer
+    assert ".innerHTML" not in renderer
+
+    profile_renderer = _extract_js_function(
+        source,
+        "function renderProfileView() {",
+    )
+    assert (
+        "renderProfileActivityLegend('profileActivityLegend', profileActivityMode);"
+        in profile_renderer
+    )
 
 
 def test_overview_profile_renderer_reuses_stats_warm_response():
