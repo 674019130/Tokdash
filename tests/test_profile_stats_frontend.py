@@ -695,6 +695,7 @@ def test_overview_profile_summary_markup_and_style_contract():
         "overviewProfileGridWrap",
         "overviewProfileGrid",
         "overviewProfileWeekHits",
+        "overviewProfileLegend",
         "overviewProfileTooltip",
     ]
     for element_id in required_ids:
@@ -769,6 +770,31 @@ def test_overview_profile_modes_share_state_and_render_aggregate_hits_contract()
         "overviewProfileModeCumulative",
     ]:
         assert f"document.getElementById('{element_id}').addEventListener" in source
+
+
+def test_overview_profile_legend_reuses_mode_and_scroller_contract():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", "", source)
+
+    assert 'id="overviewProfileLegend"' in source
+    assert source.index('id="overviewProfileGridWrap"') < source.index(
+        'id="overviewProfileLegend"'
+    ) < source.index('id="overviewProfileTooltip"')
+    assert ".overview-profile-legend{" in compact
+
+    renderer = _extract_js_function(
+        source,
+        "function renderOverviewProfilePreview(contributions = statsCache.default) {",
+    )
+    assert (
+        "renderProfileActivityLegend('overviewProfileLegend', profileActivityMode);"
+        in renderer
+    )
+    assert "fetch(" not in renderer
+
+    i18n = _extract_js_function(source, "function applyI18n() {")
+    assert "renderProfileActivityLegend('profileActivityLegend', profileActivityMode);" in i18n
+    assert "renderProfileActivityLegend('overviewProfileLegend', profileActivityMode);" in i18n
 
 
 def test_overview_profile_navigation_preserves_profile_state_contract():
