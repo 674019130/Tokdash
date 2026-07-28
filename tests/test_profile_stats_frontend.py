@@ -12,6 +12,7 @@ import tokdash
 
 INDEX_HTML = Path(tokdash.__file__).parent / "static" / "index.html"
 THEME_CONFIG_JS = Path(tokdash.__file__).parent / "static" / "theme-config.js"
+THEMES_CSS = Path(tokdash.__file__).parent / "static" / "themes.css"
 
 
 def _heat_palette_for(theme: str) -> tuple[list[str], list[str]]:
@@ -550,6 +551,45 @@ def test_profile_milestone_tooltip_and_tier_aura_contract():
         assert f'[data-milestone="{level}"]' in source
         assert f'[data-tone="milestone-{level}"]' in source
     assert "prefers-reduced-motion:reduce" in compact
+
+
+def test_paper_uses_mineral_spectrum_milestones_and_keyline():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", "", source)
+    themes = THEMES_CSS.read_text(encoding="utf-8")
+
+    light_rule = """
+html[data-ui-theme="paper"] .profile-activity-shell,
+html[data-ui-theme="paper"] .overview-profile-band {
+  --profile-milestone-1: #3E8C78;
+  --profile-milestone-2: #557AA2;
+  --profile-milestone-3: #C18A35;
+  --profile-milestone-4: #B85466;
+  --profile-milestone-keyline: var(--color-bg);
+}
+""".strip()
+    dark_rule = """
+html.dark[data-ui-theme="paper"] .profile-activity-shell,
+html.dark[data-ui-theme="paper"] .overview-profile-band {
+  --profile-milestone-1: #75C2AC;
+  --profile-milestone-2: #8FB1D4;
+  --profile-milestone-3: #E2B458;
+  --profile-milestone-4: #EA8798;
+  --profile-milestone-keyline: var(--color-bg);
+}
+""".strip()
+
+    assert light_rule in themes
+    assert dark_rule in themes
+    assert "--profile-milestone-keyline:transparent;" in compact
+    assert compact.count(
+        "inset0001pxvar(--profile-milestone-keyline)"
+    ) >= 8
+
+    assert "--profile-milestone-1:#06b6d4;" in compact
+    assert "--profile-milestone-2:#8b5cf6;" in compact
+    assert "--profile-milestone-3:#f59e0b;" in compact
+    assert "--profile-milestone-4:#ec4899;" in compact
 
 
 def test_profile_view_html_and_localization_contract():
