@@ -592,6 +592,78 @@ html.dark[data-ui-theme="paper"] .overview-profile-band {
     assert "--profile-milestone-4:#ec4899;" in compact
 
 
+def test_profile_uses_github_geometry_stronger_auras_and_edge_gutter():
+    source = INDEX_HTML.read_text(encoding="utf-8")
+    compact = re.sub(r"\s+", "", source)
+
+    assert ".profile-activity-grid{" in compact
+    assert "grid-template-columns:repeat(52,minmax(8px,1fr))" in compact
+    assert "grid-template-rows:repeat(7,minmax(8px,1fr))" in compact
+    assert "gap:3px" in compact
+    assert ".profile-activity-cell{" in compact
+    assert "border-radius:2px" in compact
+
+    assert (
+        ".profile-activity-scroll{--profile-interactive-aura-reserve:26px;"
+        "--profile-edge-safety-gutter:8px;overflow-x:auto;"
+        "padding-block:8px12px;"
+        "padding-inline:0calc(var(--profile-interactive-aura-reserve)"
+        "+var(--profile-edge-safety-gutter));}"
+    ) in compact
+    assert (
+        ".overview-profile-scroll{--overview-profile-interactive-aura-reserve:16px;"
+        "--profile-edge-safety-gutter:8px;overflow-x:auto;"
+        "padding-block:2px4px;"
+        "padding-inline:0calc(var(--overview-profile-interactive-aura-reserve)"
+        "+var(--profile-edge-safety-gutter));}"
+    ) in compact
+
+    for fragment in [
+        "0002pxcolor-mix(insrgb,var(--profile-milestone-tone)86%,transparent)",
+        "0011pxcolor-mix(insrgb,var(--profile-milestone-tone)72%,transparent)",
+        "0014pxcolor-mix(insrgb,var(--profile-milestone-tone)80%,transparent)",
+        "0003pxcolor-mix(insrgb,var(--profile-milestone-tone)72%,transparent)",
+        "0017pxcolor-mix(insrgb,var(--profile-milestone-tone)88%,transparent)",
+        "0004pxcolor-mix(insrgb,var(--profile-milestone-tone)78%,transparent)",
+        "0022pxcolor-mix(insrgb,var(--profile-milestone-tone)96%,transparent)",
+    ]:
+        assert fragment in compact
+
+    overview_base_rules = [
+        '.overview-profile-cell[data-milestone="1"]{box-shadow:inset 0 0 0 1px '
+        "var(--profile-milestone-keyline),0 0 0 1px color-mix(in srgb,"
+        "var(--profile-milestone-tone) 72%,transparent),0 0 6px color-mix("
+        "in srgb,var(--profile-milestone-tone) 42%,transparent);}",
+        '.overview-profile-cell[data-milestone="2"]{box-shadow:inset 0 0 0 1px '
+        "var(--profile-milestone-keyline),0 0 0 1px color-mix(in srgb,"
+        "var(--profile-milestone-tone) 78%,transparent),0 0 8px color-mix("
+        "in srgb,var(--profile-milestone-tone) 52%,transparent);}",
+        '.overview-profile-cell[data-milestone="3"]{box-shadow:inset 0 0 0 1px '
+        "var(--profile-milestone-keyline),0 0 0 1px color-mix(in srgb,"
+        "var(--color-text) 74%,transparent),0 0 0 2px color-mix(in srgb,"
+        "var(--profile-milestone-tone) 48%,transparent),0 0 10px color-mix("
+        "in srgb,var(--profile-milestone-tone) 62%,transparent);}",
+        '.overview-profile-cell[data-milestone="4"]{box-shadow:inset 0 0 0 1px '
+        "var(--profile-milestone-keyline),0 0 0 1px color-mix(in srgb,"
+        "var(--color-text) 82%,transparent),0 0 0 3px color-mix(in srgb,"
+        "var(--profile-milestone-tone) 58%,transparent),0 0 13px color-mix("
+        "in srgb,var(--profile-milestone-tone) 72%,transparent);}",
+    ]
+    for rule in overview_base_rules:
+        assert rule in source
+
+    overview_interaction_rule = (
+        ".overview-profile-grid button.overview-profile-cell[data-milestone]"
+        ":not(:disabled):is(:hover,:focus-visible),.overview-profile-grid "
+        ".overview-profile-cell[data-milestone].is-column-hover{box-shadow:"
+        "inset 0 0 0 1px var(--profile-milestone-keyline),0 0 0 1px "
+        "color-mix(in srgb,var(--color-text) 88%,transparent),0 0 0 3px "
+        "color-mix(in srgb,var(--profile-milestone-tone) 68%,transparent),"
+        "0 0 16px color-mix(in srgb,var(--profile-milestone-tone) 82%,transparent);}"
+    )
+    assert overview_interaction_rule in source
+
+
 def test_profile_view_html_and_localization_contract():
     source = INDEX_HTML.read_text(encoding="utf-8")
     required_ids = [
