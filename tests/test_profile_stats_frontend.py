@@ -553,7 +553,7 @@ def test_profile_milestone_tooltip_and_tier_aura_contract():
     assert "prefers-reduced-motion:reduce" in compact
 
 
-def test_paper_uses_mineral_spectrum_milestones_and_keyline():
+def test_paper_uses_rain_cleared_sky_milestones_and_keyline():
     source = INDEX_HTML.read_text(encoding="utf-8")
     compact = re.sub(r"\s+", "", source)
     themes = THEMES_CSS.read_text(encoding="utf-8")
@@ -561,20 +561,20 @@ def test_paper_uses_mineral_spectrum_milestones_and_keyline():
     light_rule = """
 html[data-ui-theme="paper"] .profile-activity-shell,
 html[data-ui-theme="paper"] .overview-profile-band {
-  --profile-milestone-1: #3E8C78;
-  --profile-milestone-2: #557AA2;
-  --profile-milestone-3: #C18A35;
-  --profile-milestone-4: #B85466;
+  --profile-milestone-1: #20AE9B;
+  --profile-milestone-2: #796DE2;
+  --profile-milestone-3: #F28D42;
+  --profile-milestone-4: #E95078;
   --profile-milestone-keyline: var(--color-bg);
 }
 """.strip()
     dark_rule = """
 html.dark[data-ui-theme="paper"] .profile-activity-shell,
 html.dark[data-ui-theme="paper"] .overview-profile-band {
-  --profile-milestone-1: #75C2AC;
-  --profile-milestone-2: #8FB1D4;
-  --profile-milestone-3: #E2B458;
-  --profile-milestone-4: #EA8798;
+  --profile-milestone-1: #4ED1BA;
+  --profile-milestone-2: #9A8CFF;
+  --profile-milestone-3: #FFB467;
+  --profile-milestone-4: #FF7398;
   --profile-milestone-keyline: var(--color-bg);
 }
 """.strip()
@@ -700,24 +700,24 @@ def test_profile_activity_legend_is_safe_localized_and_mode_aware():
     )
 
 
-def test_paper_uses_approved_slate_ink_heat_palette():
+def test_paper_uses_rain_cleared_sky_heat_palette():
     light, dark = _heat_palette_for("paper")
     assert light == [
-        "#F3EFE8", "#E8E7E4", "#DCE0E2", "#C8D0D4",
-        "#B4BEC4", "#778995", "#5D7180", "#42596A",
+        "#F6F2EA", "#E4EFF0", "#CCE4E6", "#A9D4DA",
+        "#7FBCC8", "#559FB2", "#39798F", "#27566F",
     ]
     assert dark == [
-        "#191716", "#222629", "#2B3034", "#384148",
-        "#4C5A64", "#8399A7", "#A6BAC4", "#CDDCE3",
+        "#1C2026", "#223039", "#293E48", "#31505E",
+        "#3B6575", "#4C7E8F", "#6A9EAC", "#9CC6CD",
     ]
 
     profile_indices = [round((level / 4) * (len(light) - 1)) for level in range(5)]
     assert profile_indices == [0, 2, 4, 5, 7]
     assert [light[index] for index in profile_indices] == [
-        "#F3EFE8", "#DCE0E2", "#B4BEC4", "#778995", "#42596A",
+        "#F6F2EA", "#CCE4E6", "#7FBCC8", "#559FB2", "#27566F",
     ]
     assert [dark[index] for index in profile_indices] == [
-        "#191716", "#2B3034", "#4C5A64", "#8399A7", "#CDDCE3",
+        "#1C2026", "#293E48", "#3B6575", "#4C7E8F", "#9CC6CD",
     ]
 
     classic_light, classic_dark = _heat_palette_for("classic")
