@@ -596,10 +596,33 @@ def test_profile_uses_github_geometry_stronger_auras_and_edge_gutter():
     source = INDEX_HTML.read_text(encoding="utf-8")
     compact = re.sub(r"\s+", "", source)
 
-    assert ".profile-activity-grid{" in compact
-    assert "grid-template-columns:repeat(52,minmax(8px,1fr))" in compact
-    assert "grid-template-rows:repeat(7,minmax(8px,1fr))" in compact
-    assert "gap:3px" in compact
+    assert (
+        ".profile-activity-grid-wrap{position:relative;min-width:595px;}"
+        in compact
+    )
+    assert (
+        ".profile-activity-grid{display:grid;grid-auto-flow:column;"
+        "grid-template-columns:repeat(52,minmax(8px,1fr));"
+        "grid-template-rows:repeat(7,minmax(8px,1fr));"
+        "gap:3.5px;width:100%;}"
+        in compact
+    )
+    assert (
+        ".profile-activity-week-hits{position:absolute;inset:0;display:grid;"
+        "grid-template-columns:repeat(52,minmax(8px,1fr));"
+        "gap:3.5px;pointer-events:none;}"
+        in compact
+    )
+    assert (
+        ".profile-activity-months{display:flex;justify-content:space-between;"
+        "min-width:595px;"
+        in compact
+    )
+    assert (
+        ".profile-activity-legend{display:flex;align-items:center;"
+        "justify-content:flex-end;gap:8px;min-width:595px;"
+        in compact
+    )
     assert ".profile-activity-cell{" in compact
     assert "border-radius:2px" in compact
 
@@ -875,16 +898,29 @@ def test_overview_profile_summary_markup_and_style_contract():
 
     assert ".overview-profile-band{" in compact
     assert "grid-template-columns:minmax(180px,220px)minmax(0,1fr)" in compact
-    assert ".overview-profile-grid{" in compact
-    assert "grid-template-columns:repeat(52,minmax(8px,1fr))" in compact
-    assert "gap:3px" in compact
+    assert (
+        ".overview-profile-grid-wrap{position:relative;min-width:595px;}"
+        in compact
+    )
+    assert (
+        ".overview-profile-grid{display:grid;grid-auto-flow:column;"
+        "grid-template-columns:repeat(52,minmax(8px,1fr));"
+        "grid-template-rows:repeat(7,minmax(8px,1fr));"
+        "gap:3.5px;width:100%;}"
+        in compact
+    )
+    assert (
+        ".overview-profile-week-hits{"
+        "grid-template-columns:repeat(52,minmax(8px,1fr));"
+        "gap:3.5px;}"
+        in compact
+    )
     assert ".overview-profile-cell{border-radius:2px" in compact
     assert "overviewProfileRange: 'Past 52 weeks'" in source
     assert "overviewProfileRange: '过去 52 周'" in source
     assert source.count('class="profile-activity-mode overview-profile-mode"') == 3
     assert 'aria-labelledby="overviewProfileActivityLabel"' in source
     assert 'aria-label="Activity aggregation"' not in source
-    assert ".overview-profile-grid-wrap{" in compact
     assert ".overview-profile-mode{" in compact
     assert 'id="overviewProfileWeekHits"' in source
     assert "@media(max-width:800px)" in compact
