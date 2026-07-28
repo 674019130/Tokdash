@@ -11,6 +11,18 @@ import pytest
 import tokdash
 
 INDEX_HTML = Path(tokdash.__file__).parent / "static" / "index.html"
+THEME_CONFIG_JS = Path(tokdash.__file__).parent / "static" / "theme-config.js"
+
+
+def _heat_palette_for(theme: str) -> tuple[list[str], list[str]]:
+    source = THEME_CONFIG_JS.read_text(encoding="utf-8")
+    heat_source = source[source.index("heatColorsMap:") : source.index("chartPaletteMap:")]
+    match = re.search(
+        rf"{re.escape(theme)}:\s*\{{\s*light:\s*(\[[^\]]+\]),\s*dark:\s*(\[[^\]]+\])",
+        heat_source,
+    )
+    assert match, f"heat palette not found for {theme}"
+    return json.loads(match.group(1)), json.loads(match.group(2))
 
 
 def _extract_js_function(source: str, signature: str) -> str:
@@ -646,6 +658,43 @@ def test_profile_activity_legend_is_safe_localized_and_mode_aware():
         "renderProfileActivityLegend('profileActivityLegend', profileActivityMode);"
         in profile_renderer
     )
+
+
+def test_paper_uses_approved_slate_ink_heat_palette():
+    light, dark = _heat_palette_for("paper")
+    assert light == [
+        "#F3EFE8", "#E8E7E4", "#DCE0E2", "#C8D0D4",
+        "#B4BEC4", "#778995", "#5D7180", "#42596A",
+    ]
+    assert dark == [
+        "#191716", "#222629", "#2B3034", "#384148",
+        "#4C5A64", "#8399A7", "#A6BAC4", "#CDDCE3",
+    ]
+
+    profile_indices = [round((level / 4) * (len(light) - 1)) for level in range(5)]
+    assert profile_indices == [0, 2, 4, 5, 7]
+    assert [light[index] for index in profile_indices] == [
+        "#F3EFE8", "#DCE0E2", "#B4BEC4", "#778995", "#42596A",
+    ]
+    assert [dark[index] for index in profile_indices] == [
+        "#191716", "#2B3034", "#4C5A64", "#8399A7", "#CDDCE3",
+    ]
+
+    classic_light, classic_dark = _heat_palette_for("classic")
+    assert classic_light == [
+        "#EEF2F7", "#E0E7FF", "#C7D2FE", "#A5B4FC",
+        "#60A5FA", "#3B82F6", "#2563EB", "#1E40AF",
+    ]
+    assert classic_dark == [
+        "#172033", "#1E293B", "#1D4ED8", "#2563EB",
+        "#3B82F6", "#60A5FA", "#93C5FD", "#BFDBFE",
+    ]
+
+    activity_color = _extract_js_function(
+        INDEX_HTML.read_text(encoding="utf-8"),
+        "function getProfileActivityColor(level) {",
+    )
+    assert "Math.round((safeLevel / 4) * Math.max(0, HEAT_COLORS.length - 1))" in activity_color
 
 
 def test_overview_profile_renderer_reuses_stats_warm_response():
